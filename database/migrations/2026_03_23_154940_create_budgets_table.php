@@ -14,16 +14,18 @@ return new class extends Migration
         Schema::create('budgets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('name');
-            $table->decimal('amount_limit', 12, 2);
-            $table->date('period_start')->nullable();
-            $table->date('period_end')->nullable();
+            $table->foreignId('category_id')->constrained()->cascadeOnDelete();
+            $table->string('title');
+            $table->decimal('allocated_amount', 12, 2);
+            $table->date('period_start');
+            $table->date('period_end');
+            $table->string('status');
+            $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
             $table->index(['user_id', 'deleted_at']);
-            $table->index(['user_id', 'period_start', 'period_end']);
+            $table->index(['category_id']);
         });
     }
 

@@ -14,10 +14,12 @@ class Transaction extends Model
         'user_id',
         'budget_id',
         'category_id',
+        'title',
         'amount',
-        'transaction_type',
+        'type',
         'transaction_date',
-        'note',
+        'payment_method',
+        'notes',
         'attachment_path',
     ];
 
@@ -44,4 +46,3 @@ class Transaction extends Model
         return $this->belongsTo(Category::class);
     }
 }
-

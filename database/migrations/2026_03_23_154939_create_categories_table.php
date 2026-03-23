@@ -15,12 +15,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->string('type', 20)->default('expense');
+            $table->enum('type', ['income', 'expense', 'both'])->default('both');
+            $table->string('color')->nullable();
+            $table->text('description')->nullable();
             $table->timestamps();
-            $table->softDeletes();
 
             $table->unique(['user_id', 'name', 'type']);
-            $table->index(['user_id', 'deleted_at']);
+            $table->index(['user_id']);
         });
     }
 

@@ -2,48 +2,57 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class CategoryController extends Controller
 {
-    public function index(Request $request): View
+    public function index(): View
     {
-        $userId = (int) $request->attributes->get('app_user_id');
-        $categories = Category::query()
-            ->where('user_id', $userId)
-            ->orderBy('type')
-            ->orderBy('name')
-            ->paginate(15);
-
-        return view('categories.index', compact('categories'));
+        return view('categories.index');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function create(): View
     {
-        $userId = (int) $request->attributes->get('app_user_id');
-        $payload = $request->validate([
+        return view('categories.index');
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:income,expense'],
+            'type' => ['required', 'in:income,expense,both'],
+            'color' => ['nullable', 'string', 'max:50'],
+            'description' => ['nullable', 'string'],
         ]);
 
-        Category::create([
-            ...$payload,
-            'user_id' => $userId,
-        ]);
-
-        return redirect()->route('categories.index')->with('status', 'Category created.');
+        return response()->noContent();
     }
 
-    public function destroy(Request $request, int $category): RedirectResponse
+    public function show(string $id): View
     {
-        $userId = (int) $request->attributes->get('app_user_id');
-        $category = Category::query()->where('user_id', $userId)->findOrFail($category);
-        $category->delete();
+        return view('categories.index');
+    }
 
-        return redirect()->route('categories.index')->with('status', 'Category deleted.');
+    public function edit(string $id): View
+    {
+        return view('categories.index');
+    }
+
+    public function update(Request $request, string $id)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'type' => ['required', 'in:income,expense,both'],
+            'color' => ['nullable', 'string', 'max:50'],
+            'description' => ['nullable', 'string'],
+        ]);
+
+        return response()->noContent();
+    }
+
+    public function destroy(string $id)
+    {
+        return response()->noContent();
     }
 }
-

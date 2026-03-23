@@ -14,16 +14,18 @@ class Budget extends Model
     protected $fillable = [
         'user_id',
         'category_id',
-        'name',
-        'amount_limit',
+        'title',
+        'allocated_amount',
         'period_start',
         'period_end',
+        'status',
+        'notes',
     ];
 
     protected function casts(): array
     {
         return [
-            'amount_limit' => 'decimal:2',
+            'allocated_amount' => 'decimal:2',
             'period_start' => 'date',
             'period_end' => 'date',
         ];
@@ -44,4 +46,3 @@ class Budget extends Model
         return $this->hasMany(Transaction::class);
     }
 }
-
