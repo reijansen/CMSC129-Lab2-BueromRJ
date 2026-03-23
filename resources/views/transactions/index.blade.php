@@ -9,9 +9,14 @@
                 <h1 class="text-2xl font-semibold text-slate-900">Transactions</h1>
                 <p class="text-sm text-slate-500">Track all income and expense records.</p>
             </div>
-            <a href="{{ route('transactions.create') }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
-                New Transaction
-            </a>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('transactions.trash') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    View Trash
+                </a>
+                <a href="{{ route('transactions.create') }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                    New Transaction
+                </a>
+            </div>
         </div>
 
         <div class="overflow-x-auto">

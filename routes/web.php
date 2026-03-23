@@ -22,7 +22,12 @@ Route::middleware(['web', 'supabase.auth'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('categories', CategoryController::class);
+    Route::get('/budgets/trash', [BudgetController::class, 'trash'])->name('budgets.trash');
+    Route::patch('/budgets/{id}/restore', [BudgetController::class, 'restore'])->name('budgets.restore');
+    Route::delete('/budgets/{id}/force-delete', [BudgetController::class, 'forceDelete'])->name('budgets.force-delete');
     Route::resource('budgets', BudgetController::class);
+    Route::get('/transactions/trash', [TransactionController::class, 'trash'])->name('transactions.trash');
+    Route::patch('/transactions/{id}/restore', [TransactionController::class, 'restore'])->name('transactions.restore');
+    Route::delete('/transactions/{id}/force-delete', [TransactionController::class, 'forceDelete'])->name('transactions.force-delete');
     Route::resource('transactions', TransactionController::class);
 });
-

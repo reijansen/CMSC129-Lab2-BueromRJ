@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Budget;
 use App\Models\Category;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -100,6 +101,48 @@ class BudgetController extends Controller
             ->with('success', 'Budget deleted successfully.');
     }
 
+    public function trash(Request $request): View
+    {
+        $userId = $this->currentUserId($request);
+
+        $budgets = Budget::onlyTrashed()
+            ->where('user_id', $userId)
+            ->with('category')
+            ->orderByDesc('deleted_at')
+            ->paginate(10);
+
+        return view('budgets.trash', [
+            'budgets' => $budgets,
+        ]);
+    }
+
+    public function restore(Request $request, int $id): RedirectResponse
+    {
+        $budget = $this->trashedBudgetForUser($request, $id);
+        $budget->restore();
+
+        return redirect()
+            ->route('budgets.trash')
+            ->with('success', 'Budget restored successfully.');
+    }
+
+    public function forceDelete(Request $request, int $id): RedirectResponse
+    {
+        $budget = $this->trashedBudgetForUser($request, $id);
+
+        try {
+            $budget->forceDelete();
+        } catch (QueryException) {
+            return redirect()
+                ->route('budgets.trash')
+                ->with('error', 'Budget cannot be permanently deleted yet because it is still referenced by other records.');
+        }
+
+        return redirect()
+            ->route('budgets.trash')
+            ->with('success', 'Budget permanently deleted.');
+    }
+
     private function validateBudgetPayload(Request $request, int $userId): array
     {
         return $request->validate([
@@ -122,6 +165,20 @@ class BudgetController extends Controller
         if ((int) $budget->user_id !== $this->currentUserId($request)) {
             abort(403);
         }
+    }
+
+    private function trashedBudgetForUser(Request $request, int $id): Budget
+    {
+        $budget = Budget::onlyTrashed()
+            ->where('user_id', $this->currentUserId($request))
+            ->where('id', $id)
+            ->first();
+
+        if (! $budget) {
+            abort(403);
+        }
+
+        return $budget;
     }
 
     private function currentUserId(Request $request): int

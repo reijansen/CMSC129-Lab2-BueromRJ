@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Transaction;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -116,6 +117,48 @@ class TransactionController extends Controller
             ->with('success', 'Transaction deleted successfully.');
     }
 
+    public function trash(Request $request): View
+    {
+        $userId = $this->currentUserId($request);
+
+        $transactions = Transaction::onlyTrashed()
+            ->where('user_id', $userId)
+            ->with(['budget', 'category'])
+            ->orderByDesc('deleted_at')
+            ->paginate(10);
+
+        return view('transactions.trash', [
+            'transactions' => $transactions,
+        ]);
+    }
+
+    public function restore(Request $request, int $id): RedirectResponse
+    {
+        $transaction = $this->trashedTransactionForUser($request, $id);
+        $transaction->restore();
+
+        return redirect()
+            ->route('transactions.trash')
+            ->with('success', 'Transaction restored successfully.');
+    }
+
+    public function forceDelete(Request $request, int $id): RedirectResponse
+    {
+        $transaction = $this->trashedTransactionForUser($request, $id);
+
+        try {
+            $transaction->forceDelete();
+        } catch (QueryException) {
+            return redirect()
+                ->route('transactions.trash')
+                ->with('error', 'Transaction cannot be permanently deleted due to a database constraint.');
+        }
+
+        return redirect()
+            ->route('transactions.trash')
+            ->with('success', 'Transaction permanently deleted.');
+    }
+
     private function validateTransactionPayload(Request $request, int $userId): array
     {
         return $request->validate([
@@ -144,6 +187,20 @@ class TransactionController extends Controller
         if ((int) $transaction->user_id !== $this->currentUserId($request)) {
             abort(403);
         }
+    }
+
+    private function trashedTransactionForUser(Request $request, int $id): Transaction
+    {
+        $transaction = Transaction::onlyTrashed()
+            ->where('user_id', $this->currentUserId($request))
+            ->where('id', $id)
+            ->first();
+
+        if (! $transaction) {
+            abort(403);
+        }
+
+        return $transaction;
     }
 
     private function currentUserId(Request $request): int
