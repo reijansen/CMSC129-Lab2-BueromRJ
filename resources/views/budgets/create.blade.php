@@ -1,14 +1,25 @@
 @extends('layouts.app')
 
+@section('title', 'Create Budget')
+
 @section('content')
-    <div class="card">
-        <h1 class="mb-3">Create Budget</h1>
-        <form method="post" action="{{ route('budgets.store') }}">
+    <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="mb-5">
+            <h1 class="text-2xl font-semibold text-slate-900">Create Budget</h1>
+            <p class="text-sm text-slate-500">Set up a new budget plan.</p>
+        </div>
+
+        <form method="post" action="{{ route('budgets.store') }}" class="space-y-6">
             @csrf
-            @include('budgets.partials.form', ['budget' => null])
-            <div class="row">
-                <button type="submit">Save</button>
-                <a class="btn btn-secondary" href="{{ route('budgets.index') }}">Cancel</a>
+            @include('budgets._form')
+
+            <div class="flex items-center gap-3">
+                <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                    Save Budget
+                </button>
+                <a href="{{ route('budgets.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    Cancel
+                </a>
             </div>
         </form>
     </div>
