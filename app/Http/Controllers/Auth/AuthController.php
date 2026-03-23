@@ -21,7 +21,7 @@ class AuthController extends Controller
     public function showLogin(): View|RedirectResponse
     {
         if (session()->has('app_user_id')) {
-            return redirect()->route('budgets.index');
+            return redirect()->route('dashboard');
         }
 
         return view('auth.login');
@@ -44,13 +44,13 @@ class AuthController extends Controller
 
         $this->persistSession($request, $session);
 
-        return redirect()->route('budgets.index');
+        return redirect()->route('dashboard');
     }
 
     public function showRegister(): View|RedirectResponse
     {
         if (session()->has('app_user_id')) {
-            return redirect()->route('budgets.index');
+            return redirect()->route('dashboard');
         }
 
         return view('auth.register');
@@ -78,7 +78,33 @@ class AuthController extends Controller
 
         $this->persistSession($request, $response, $credentials['name']);
 
-        return redirect()->route('budgets.index');
+        return redirect()->route('dashboard');
+    }
+
+    public function showForgotPassword(): View|RedirectResponse
+    {
+        if (session()->has('app_user_id')) {
+            return redirect()->route('dashboard');
+        }
+
+        return view('auth.forgot-password');
+    }
+
+    public function sendForgotPassword(Request $request): RedirectResponse
+    {
+        $payload = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        try {
+            $this->supabaseAuthService->sendPasswordResetLink($payload['email']);
+        } catch (RuntimeException $exception) {
+            return back()->withInput()->withErrors([
+                'email' => $exception->getMessage(),
+            ]);
+        }
+
+        return back()->with('success', 'If an account exists, a reset email has been sent.');
     }
 
     public function logout(Request $request): RedirectResponse
@@ -120,4 +146,3 @@ class AuthController extends Controller
         ]);
     }
 }
-

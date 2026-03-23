@@ -7,22 +7,22 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return redirect()->route('dashboard');
-});
-
-Route::middleware('web')->group(function () {
+Route::middleware(['web', 'supabase.guest'])->group(function () {
+    Route::view('/', 'welcome')->name('landing');
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.attempt');
-
-    Route::middleware('supabase.auth')->group(function () {
-        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        Route::resource('categories', CategoryController::class);
-        Route::resource('budgets', BudgetController::class);
-        Route::resource('transactions', TransactionController::class);
-    });
+    Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendForgotPassword'])->name('password.email');
 });
+
+Route::middleware(['web', 'supabase.auth'])->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::resource('categories', CategoryController::class);
+    Route::resource('budgets', BudgetController::class);
+    Route::resource('transactions', TransactionController::class);
+});
+

@@ -46,6 +46,18 @@ class SupabaseAuthService
             ->post($this->authUrl('/logout'));
     }
 
+    public function sendPasswordResetLink(string $email): void
+    {
+        $response = $this->baseRequest()
+            ->post($this->authUrl('/recover'), [
+                'email' => $email,
+            ]);
+
+        if (! $response->successful()) {
+            $this->parseResponse($response->json(), false);
+        }
+    }
+
     private function baseRequest()
     {
         $anonKey = (string) config('services.supabase.anon_key');
@@ -71,4 +83,3 @@ class SupabaseAuthService
         return $payload;
     }
 }
-
