@@ -15,15 +15,44 @@ class BudgetController extends Controller
     public function index(Request $request): View
     {
         $userId = $this->currentUserId($request);
+        $filters = [
+            'search' => trim((string) $request->query('search', '')),
+            'category_id' => $request->query('category_id'),
+            'status' => $request->query('status'),
+            'period_start_from' => $request->query('period_start_from'),
+            'period_end_to' => $request->query('period_end_to'),
+        ];
+
+        $categories = Category::query()
+            ->where('user_id', $userId)
+            ->orderBy('name')
+            ->get();
 
         $budgets = Budget::query()
             ->where('user_id', $userId)
             ->with('category')
+            ->when($filters['search'] !== '', function ($query) use ($filters) {
+                $query->where(function ($innerQuery) use ($filters) {
+                    $innerQuery
+                        ->where('title', 'ilike', '%' . $filters['search'] . '%')
+                        ->orWhere('notes', 'ilike', '%' . $filters['search'] . '%');
+                });
+            })
+            ->when($filters['category_id'], function ($query) use ($filters, $userId) {
+                $query->where('category_id', $filters['category_id'])
+                    ->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('user_id', $userId));
+            })
+            ->when($filters['status'], fn ($query) => $query->where('status', $filters['status']))
+            ->when($filters['period_start_from'], fn ($query) => $query->whereDate('period_start', '>=', $filters['period_start_from']))
+            ->when($filters['period_end_to'], fn ($query) => $query->whereDate('period_end', '<=', $filters['period_end_to']))
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('budgets.index', [
             'budgets' => $budgets,
+            'categories' => $categories,
+            'filters' => $filters,
         ]);
     }
 

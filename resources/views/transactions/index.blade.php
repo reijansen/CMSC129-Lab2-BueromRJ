@@ -19,6 +19,94 @@
             </div>
         </div>
 
+        <form method="GET" action="{{ route('transactions.index') }}" class="mb-6 rounded-lg border border-emerald-100 bg-emerald-50/40 p-4">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div>
+                    <label for="search" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Search</label>
+                    <input
+                        id="search"
+                        name="search"
+                        type="text"
+                        value="{{ $filters['search'] ?? '' }}"
+                        placeholder="Title or notes"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    >
+                </div>
+
+                <div>
+                    <label for="type" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Type</label>
+                    <select
+                        id="type"
+                        name="type"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    >
+                        <option value="">All types</option>
+                        <option value="income" @selected(($filters['type'] ?? '') === 'income')>Income</option>
+                        <option value="expense" @selected(($filters['type'] ?? '') === 'expense')>Expense</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="category_id" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Category</label>
+                    <select
+                        id="category_id"
+                        name="category_id"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    >
+                        <option value="">All categories</option>
+                        @foreach ($categories as $category)
+                            <option value="{{ $category->id }}" @selected(($filters['category_id'] ?? '') == (string) $category->id)>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label for="payment_method" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Payment Method</label>
+                    <input
+                        id="payment_method"
+                        name="payment_method"
+                        type="text"
+                        value="{{ $filters['payment_method'] ?? '' }}"
+                        placeholder="Cash, Card, GCash..."
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    >
+                </div>
+
+                <div>
+                    <label for="date_from" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Date From</label>
+                    <input
+                        id="date_from"
+                        name="date_from"
+                        type="date"
+                        value="{{ $filters['date_from'] ?? '' }}"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    >
+                </div>
+
+                <div>
+                    <label for="date_to" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Date To</label>
+                    <input
+                        id="date_to"
+                        name="date_to"
+                        type="date"
+                        value="{{ $filters['date_to'] ?? '' }}"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    >
+                </div>
+            </div>
+
+            <div class="mt-4 flex items-center gap-2">
+                <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                    Apply Filters
+                </button>
+                <a href="{{ route('transactions.index') }}" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    Clear
+                </a>
+            </div>
+        </form>
+
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50">

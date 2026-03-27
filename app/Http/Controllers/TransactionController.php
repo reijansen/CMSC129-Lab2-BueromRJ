@@ -16,16 +16,47 @@ class TransactionController extends Controller
     public function index(Request $request): View
     {
         $userId = $this->currentUserId($request);
+        $filters = [
+            'search' => trim((string) $request->query('search', '')),
+            'category_id' => $request->query('category_id'),
+            'type' => $request->query('type'),
+            'payment_method' => trim((string) $request->query('payment_method', '')),
+            'date_from' => $request->query('date_from'),
+            'date_to' => $request->query('date_to'),
+        ];
+
+        $categories = Category::query()
+            ->where('user_id', $userId)
+            ->orderBy('name')
+            ->get();
 
         $transactions = Transaction::query()
             ->where('user_id', $userId)
             ->with(['budget', 'category'])
+            ->when($filters['search'] !== '', function ($query) use ($filters) {
+                $query->where(function ($innerQuery) use ($filters) {
+                    $innerQuery
+                        ->where('title', 'ilike', '%' . $filters['search'] . '%')
+                        ->orWhere('notes', 'ilike', '%' . $filters['search'] . '%');
+                });
+            })
+            ->when($filters['type'], fn ($query) => $query->where('type', $filters['type']))
+            ->when($filters['category_id'], function ($query) use ($filters, $userId) {
+                $query->where('category_id', $filters['category_id'])
+                    ->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('user_id', $userId));
+            })
+            ->when($filters['payment_method'] !== '', fn ($query) => $query->where('payment_method', 'ilike', '%' . $filters['payment_method'] . '%'))
+            ->when($filters['date_from'], fn ($query) => $query->whereDate('transaction_date', '>=', $filters['date_from']))
+            ->when($filters['date_to'], fn ($query) => $query->whereDate('transaction_date', '<=', $filters['date_to']))
             ->orderByDesc('transaction_date')
             ->orderByDesc('id')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('transactions.index', [
             'transactions' => $transactions,
+            'categories' => $categories,
+            'filters' => $filters,
         ]);
     }
 
