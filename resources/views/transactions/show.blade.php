@@ -9,7 +9,7 @@
         $isImage = $attachmentPath && \Illuminate\Support\Str::endsWith(strtolower($attachmentPath), ['.jpg', '.jpeg', '.png']);
     @endphp
 
-    <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="app-card">
         <div class="mb-4 flex items-center justify-between">
             <h1 class="text-2xl font-semibold text-slate-900">{{ $transaction->title }}</h1>
             @if ($transaction->type === 'income')
@@ -75,12 +75,13 @@
         @endif
 
         <div class="mt-6 flex items-center gap-3">
-            <a href="{{ route('transactions.edit', $transaction) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+            <a href="{{ route('transactions.edit', $transaction) }}" class="btn-primary">
                 Edit Transaction
             </a>
-            <a href="{{ route('transactions.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <a href="{{ route('transactions.index') }}" class="btn-secondary">
                 Back
             </a>
         </div>
     </div>
 @endsection
+

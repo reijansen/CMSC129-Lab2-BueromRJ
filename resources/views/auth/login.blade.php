@@ -3,7 +3,7 @@
 @section('title', 'Login')
 
 @section('content')
-    <div class="mx-auto max-w-md rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+    <div class="app-card mx-auto max-w-md rounded-2xl">
         <h1 class="mb-1 text-2xl font-semibold text-slate-900">Login</h1>
         <p class="mb-6 text-sm text-slate-600">Sign in to continue to your finance dashboard.</p>
 
@@ -13,16 +13,16 @@
             <div>
                 <label for="email" class="mb-1 block text-sm font-medium text-slate-700">Email</label>
                 <input id="email" name="email" type="email" value="{{ old('email') }}" required
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    class="input-control">
             </div>
 
             <div>
                 <label for="password" class="mb-1 block text-sm font-medium text-slate-700">Password</label>
                 <input id="password" name="password" type="password" required
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    class="input-control">
             </div>
 
-            <button type="submit" class="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700">
+            <button type="submit" class="btn-primary w-full py-2.5">
                 Login
             </button>
         </form>

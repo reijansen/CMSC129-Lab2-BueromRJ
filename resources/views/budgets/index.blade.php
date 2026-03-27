@@ -3,17 +3,17 @@
 @section('title', 'Budgets')
 
 @section('content')
-    <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="app-card">
         <div class="mb-4 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-semibold text-slate-900">Budgets</h1>
                 <p class="text-sm text-slate-500">Create and manage your budget allocations.</p>
             </div>
             <div class="flex items-center gap-2">
-                <a href="{{ route('budgets.trash') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                <a href="{{ route('budgets.trash') }}" class="btn-secondary">
                     View Trash
                 </a>
-                <a href="{{ route('budgets.create') }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                <a href="{{ route('budgets.create') }}" class="btn-primary">
                     New Budget
                 </a>
             </div>
@@ -88,10 +88,10 @@
             </div>
 
             <div class="mt-4 flex items-center gap-2">
-                <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                <button type="submit" class="btn-primary">
                     Apply Filters
                 </button>
-                <a href="{{ route('budgets.index') }}" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                <a href="{{ route('budgets.index') }}" class="btn-secondary">
                     Clear
                 </a>
             </div>
@@ -125,8 +125,8 @@
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('budgets.show', $budget) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">View</a>
-                                    <a href="{{ route('budgets.edit', $budget) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">Edit</a>
+                                    <a href="{{ route('budgets.show', $budget) }}" class="btn-secondary px-3 py-1.5 text-xs">View</a>
+                                    <a href="{{ route('budgets.edit', $budget) }}" class="btn-secondary px-3 py-1.5 text-xs">Edit</a>
                                     <form method="post" action="{{ route('budgets.destroy', $budget) }}">
                                         @csrf
                                         @method('DELETE')
@@ -139,7 +139,11 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-4 py-8 text-center text-slate-500">No budgets found.</td>
+                            <td colspan="6" class="px-4 py-8 text-center">
+                                <p class="text-sm font-medium text-slate-700">No budgets found.</p>
+                                <p class="mt-1 text-xs text-slate-500">Set up a budget to start tracking spending limits.</p>
+                                <a href="{{ route('budgets.create') }}" class="mt-3 inline-flex btn-primary px-3 py-1.5 text-xs">Create Budget</a>
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -151,3 +155,5 @@
         </div>
     </div>
 @endsection
+
+

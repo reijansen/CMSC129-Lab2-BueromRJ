@@ -4,11 +4,11 @@
 
 <div class="space-y-5">
     <div>
-        <label for="category_id" class="mb-1 block text-sm font-medium text-slate-700">Category</label>
+        <label for="category_id" class="label-control">Category</label>
         <select
             id="category_id"
             name="category_id"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            class="input-control"
             required
         >
             <option value="">Select a category</option>
@@ -21,19 +21,19 @@
     </div>
 
     <div>
-        <label for="title" class="mb-1 block text-sm font-medium text-slate-700">Title</label>
+        <label for="title" class="label-control">Title</label>
         <input
             id="title"
             name="title"
             type="text"
             value="{{ old('title', $budget?->title) }}"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            class="input-control"
             required
         >
     </div>
 
     <div>
-        <label for="allocated_amount" class="mb-1 block text-sm font-medium text-slate-700">Allocated Amount</label>
+        <label for="allocated_amount" class="label-control">Allocated Amount</label>
         <input
             id="allocated_amount"
             name="allocated_amount"
@@ -41,42 +41,42 @@
             min="0"
             step="0.01"
             value="{{ old('allocated_amount', $budget?->allocated_amount) }}"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            class="input-control"
             required
         >
     </div>
 
     <div class="grid gap-4 md:grid-cols-2">
         <div>
-            <label for="period_start" class="mb-1 block text-sm font-medium text-slate-700">Period Start</label>
+            <label for="period_start" class="label-control">Period Start</label>
             <input
                 id="period_start"
                 name="period_start"
                 type="date"
                 value="{{ old('period_start', optional($budget?->period_start)->format('Y-m-d')) }}"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                class="input-control"
                 required
             >
         </div>
         <div>
-            <label for="period_end" class="mb-1 block text-sm font-medium text-slate-700">Period End</label>
+            <label for="period_end" class="label-control">Period End</label>
             <input
                 id="period_end"
                 name="period_end"
                 type="date"
                 value="{{ old('period_end', optional($budget?->period_end)->format('Y-m-d')) }}"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                class="input-control"
                 required
             >
         </div>
     </div>
 
     <div>
-        <label for="status" class="mb-1 block text-sm font-medium text-slate-700">Status</label>
+        <label for="status" class="label-control">Status</label>
         <select
             id="status"
             name="status"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            class="input-control"
             required
         >
             @foreach (['active', 'completed', 'exceeded', 'archived'] as $status)
@@ -88,13 +88,14 @@
     </div>
 
     <div>
-        <label for="notes" class="mb-1 block text-sm font-medium text-slate-700">Notes</label>
+        <label for="notes" class="label-control">Notes</label>
         <textarea
             id="notes"
             name="notes"
             rows="4"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            class="input-control"
         >{{ old('notes', $budget?->notes) }}</textarea>
     </div>
 </div>
+
 

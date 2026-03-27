@@ -3,13 +3,13 @@
 @section('title', 'Categories')
 
 @section('content')
-    <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="app-card">
         <div class="mb-4 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-semibold text-slate-900">Categories</h1>
                 <p class="text-sm text-slate-500">Manage your income and expense category types.</p>
             </div>
-            <a href="{{ route('categories.create') }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+            <a href="{{ route('categories.create') }}" class="btn-primary">
                 New Category
             </a>
         </div>
@@ -51,10 +51,10 @@
                             <td class="px-4 py-3 text-slate-600">{{ $category->description ?: '-' }}</td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('categories.show', $category) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">
+                                    <a href="{{ route('categories.show', $category) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                         View
                                     </a>
-                                    <a href="{{ route('categories.edit', $category) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">
+                                    <a href="{{ route('categories.edit', $category) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                         Edit
                                     </a>
                                     <form method="post" action="{{ route('categories.destroy', $category) }}">
@@ -69,7 +69,11 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-slate-500">No categories found.</td>
+                            <td colspan="7" class="px-4 py-8 text-center">
+                                <p class="text-sm font-medium text-slate-700">No categories yet.</p>
+                                <p class="mt-1 text-xs text-slate-500">Create your first category to organize budgets and transactions.</p>
+                                <a href="{{ route('categories.create') }}" class="mt-3 inline-flex btn-primary px-3 py-1.5 text-xs">Create Category</a>
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -81,3 +85,4 @@
         </div>
     </div>
 @endsection
+

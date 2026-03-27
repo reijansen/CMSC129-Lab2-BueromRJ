@@ -4,11 +4,11 @@
 
 <div class="space-y-5">
     <div>
-        <label for="budget_id" class="mb-1 block text-sm font-medium text-slate-700">Budget</label>
+        <label for="budget_id" class="label-control">Budget</label>
         <select
             id="budget_id"
             name="budget_id"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            class="input-control"
             required
         >
             <option value="">Select a budget</option>
@@ -21,11 +21,11 @@
     </div>
 
     <div>
-        <label for="category_id" class="mb-1 block text-sm font-medium text-slate-700">Category</label>
+        <label for="category_id" class="label-control">Category</label>
         <select
             id="category_id"
             name="category_id"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            class="input-control"
             required
         >
             <option value="">Select a category</option>
@@ -38,19 +38,19 @@
     </div>
 
     <div>
-        <label for="title" class="mb-1 block text-sm font-medium text-slate-700">Title</label>
+        <label for="title" class="label-control">Title</label>
         <input
             id="title"
             name="title"
             type="text"
             value="{{ old('title', $transaction?->title) }}"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            class="input-control"
             required
         >
     </div>
 
     <div>
-        <label for="amount" class="mb-1 block text-sm font-medium text-slate-700">Amount</label>
+        <label for="amount" class="label-control">Amount</label>
         <input
             id="amount"
             name="amount"
@@ -58,17 +58,17 @@
             step="0.01"
             min="0"
             value="{{ old('amount', $transaction?->amount) }}"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            class="input-control"
             required
         >
     </div>
 
     <div>
-        <label for="type" class="mb-1 block text-sm font-medium text-slate-700">Type</label>
+        <label for="type" class="label-control">Type</label>
         <select
             id="type"
             name="type"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            class="input-control"
             required
         >
             @foreach (['income' => 'Income', 'expense' => 'Expense'] as $value => $label)
@@ -78,40 +78,40 @@
     </div>
 
     <div>
-        <label for="transaction_date" class="mb-1 block text-sm font-medium text-slate-700">Transaction Date</label>
+        <label for="transaction_date" class="label-control">Transaction Date</label>
         <input
             id="transaction_date"
             name="transaction_date"
             type="date"
             value="{{ old('transaction_date', optional($transaction?->transaction_date)->format('Y-m-d')) }}"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            class="input-control"
             required
         >
     </div>
 
     <div>
-        <label for="payment_method" class="mb-1 block text-sm font-medium text-slate-700">Payment Method</label>
+        <label for="payment_method" class="label-control">Payment Method</label>
         <input
             id="payment_method"
             name="payment_method"
             type="text"
             value="{{ old('payment_method', $transaction?->payment_method) }}"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            class="input-control"
         >
     </div>
 
     <div>
-        <label for="notes" class="mb-1 block text-sm font-medium text-slate-700">Notes</label>
+        <label for="notes" class="label-control">Notes</label>
         <textarea
             id="notes"
             name="notes"
             rows="4"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            class="input-control"
         >{{ old('notes', $transaction?->notes) }}</textarea>
     </div>
 
     <div>
-        <label for="attachment" class="mb-1 block text-sm font-medium text-slate-700">Attachment (Optional)</label>
+        <label for="attachment" class="label-control">Attachment (Optional)</label>
         <input
             id="attachment"
             name="attachment"
@@ -139,3 +139,4 @@
         @endif
     </div>
 </div>
+

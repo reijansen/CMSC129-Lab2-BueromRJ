@@ -3,13 +3,13 @@
 @section('title', 'Transaction Trash')
 
 @section('content')
-    <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="app-card">
         <div class="mb-4 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-semibold text-slate-900">Transaction Trash</h1>
                 <p class="text-sm text-slate-500">Restore deleted transactions or permanently remove them.</p>
             </div>
-            <a href="{{ route('transactions.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <a href="{{ route('transactions.index') }}" class="btn-secondary">
                 Back to Transactions
             </a>
         </div>
@@ -59,7 +59,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-4 py-8 text-center text-slate-500">No deleted transactions found.</td>
+                            <td colspan="8" class="px-4 py-8 text-center text-slate-500">Trash is empty. No deleted transactions found.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -71,3 +71,5 @@
         </div>
     </div>
 @endsection
+
+

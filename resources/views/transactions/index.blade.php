@@ -3,17 +3,17 @@
 @section('title', 'Transactions')
 
 @section('content')
-    <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="app-card">
         <div class="mb-4 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-semibold text-slate-900">Transactions</h1>
                 <p class="text-sm text-slate-500">Track all income and expense records.</p>
             </div>
             <div class="flex items-center gap-2">
-                <a href="{{ route('transactions.trash') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                <a href="{{ route('transactions.trash') }}" class="btn-secondary">
                     View Trash
                 </a>
-                <a href="{{ route('transactions.create') }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                <a href="{{ route('transactions.create') }}" class="btn-primary">
                     New Transaction
                 </a>
             </div>
@@ -98,10 +98,10 @@
             </div>
 
             <div class="mt-4 flex items-center gap-2">
-                <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                <button type="submit" class="btn-primary">
                     Apply Filters
                 </button>
-                <a href="{{ route('transactions.index') }}" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                <a href="{{ route('transactions.index') }}" class="btn-secondary">
                     Clear
                 </a>
             </div>
@@ -153,10 +153,10 @@
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('transactions.show', $transaction) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">
+                                    <a href="{{ route('transactions.show', $transaction) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                         View
                                     </a>
-                                    <a href="{{ route('transactions.edit', $transaction) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">
+                                    <a href="{{ route('transactions.edit', $transaction) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                         Edit
                                     </a>
                                     <form method="post" action="{{ route('transactions.destroy', $transaction) }}">
@@ -171,7 +171,11 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-4 py-8 text-center text-slate-500">No transactions found.</td>
+                            <td colspan="9" class="px-4 py-8 text-center">
+                                <p class="text-sm font-medium text-slate-700">No transactions recorded yet.</p>
+                                <p class="mt-1 text-xs text-slate-500">Add your first income or expense to populate this list.</p>
+                                <a href="{{ route('transactions.create') }}" class="mt-3 inline-flex btn-primary px-3 py-1.5 text-xs">Create Transaction</a>
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -183,3 +187,5 @@
         </div>
     </div>
 @endsection
+
+

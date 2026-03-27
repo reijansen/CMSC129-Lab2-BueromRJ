@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="space-y-4">
-        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="app-card">
             <div class="mb-4 flex items-center justify-between">
                 <h1 class="text-2xl font-semibold text-slate-900">{{ $category->name }}</h1>
                 <span class="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
@@ -33,16 +33,16 @@
             </dl>
 
             <div class="mt-6 flex items-center gap-3">
-                <a href="{{ route('categories.edit', $category) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                <a href="{{ route('categories.edit', $category) }}" class="btn-primary">
                     Edit Category
                 </a>
-                <a href="{{ route('categories.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                <a href="{{ route('categories.index') }}" class="btn-secondary">
                     Back
                 </a>
             </div>
         </div>
 
-        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="app-card">
             <div class="mb-3 flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-slate-900">Related Budgets</h2>
                 <span class="text-xs text-slate-500">Latest 5</span>
@@ -68,7 +68,7 @@
                                 </td>
                                 <td class="px-4 py-3 text-slate-600">{{ ucfirst($budget->status) }}</td>
                                 <td class="px-4 py-3 text-right">
-                                    <a href="{{ route('budgets.show', $budget) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">
+                                    <a href="{{ route('budgets.show', $budget) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                         View
                                     </a>
                                 </td>
@@ -83,7 +83,7 @@
             </div>
         </div>
 
-        <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="app-card">
             <div class="mb-3 flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-slate-900">Related Transactions</h2>
                 <span class="text-xs text-slate-500">Latest 5</span>
@@ -109,7 +109,7 @@
                                 <td class="px-4 py-3 text-slate-600">{{ $transaction->transaction_date?->format('M d, Y') }}</td>
                                 <td class="px-4 py-3 text-slate-600">{{ $transaction->budget?->title ?? '-' }}</td>
                                 <td class="px-4 py-3 text-right">
-                                    <a href="{{ route('transactions.show', $transaction) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">
+                                    <a href="{{ route('transactions.show', $transaction) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                         View
                                     </a>
                                 </td>
@@ -125,3 +125,4 @@
         </div>
     </div>
 @endsection
+
