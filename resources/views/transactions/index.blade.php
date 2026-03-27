@@ -118,6 +118,7 @@
                         <th class="px-4 py-3 text-left font-semibold text-slate-600">Amount</th>
                         <th class="px-4 py-3 text-left font-semibold text-slate-600">Date</th>
                         <th class="px-4 py-3 text-left font-semibold text-slate-600">Payment</th>
+                        <th class="px-4 py-3 text-left font-semibold text-slate-600">Attachment</th>
                         <th class="px-4 py-3 text-right font-semibold text-slate-600">Actions</th>
                     </tr>
                 </thead>
@@ -142,6 +143,15 @@
                             <td class="px-4 py-3 text-slate-600">{{ $transaction->transaction_date?->format('M d, Y') }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ $transaction->payment_method ?: '-' }}</td>
                             <td class="px-4 py-3">
+                                @if ($transaction->attachment_path)
+                                    <span class="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                                        Attached
+                                    </span>
+                                @else
+                                    <span class="text-xs text-slate-400">None</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-2">
                                     <a href="{{ route('transactions.show', $transaction) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">
                                         View
@@ -161,7 +171,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-4 py-8 text-center text-slate-500">No transactions found.</td>
+                            <td colspan="9" class="px-4 py-8 text-center text-slate-500">No transactions found.</td>
                         </tr>
                     @endforelse
                 </tbody>

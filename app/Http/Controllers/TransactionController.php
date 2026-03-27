@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -84,10 +85,12 @@ class TransactionController extends Controller
     {
         $userId = $this->currentUserId($request);
         $payload = $this->validateTransactionPayload($request, $userId);
+        $attachmentPath = $this->storeAttachmentIfPresent($request);
 
         Transaction::create([
             ...$payload,
             'user_id' => $userId,
+            'attachment_path' => $attachmentPath,
         ]);
 
         return redirect()
@@ -135,6 +138,12 @@ class TransactionController extends Controller
     {
         $this->authorizeTransactionOwnership($request, $transaction);
         $payload = $this->validateTransactionPayload($request, $this->currentUserId($request));
+
+        if ($request->hasFile('attachment')) {
+            $this->deleteAttachmentIfExists($transaction->attachment_path);
+            $payload['attachment_path'] = $this->storeAttachmentIfPresent($request);
+        }
+
         $transaction->update($payload);
 
         return redirect()
@@ -180,6 +189,7 @@ class TransactionController extends Controller
     public function forceDelete(Request $request, int $id): RedirectResponse
     {
         $transaction = $this->trashedTransactionForUser($request, $id);
+        $this->deleteAttachmentIfExists($transaction->attachment_path);
 
         try {
             $transaction->forceDelete();
@@ -213,8 +223,26 @@ class TransactionController extends Controller
             'transaction_date' => ['required', 'date'],
             'payment_method' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
-            'attachment_path' => ['nullable', 'string', 'max:255'],
+            'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
         ]);
+    }
+
+    private function storeAttachmentIfPresent(Request $request): ?string
+    {
+        if (! $request->hasFile('attachment')) {
+            return null;
+        }
+
+        return $request->file('attachment')->store('transactions/attachments', 'public');
+    }
+
+    private function deleteAttachmentIfExists(?string $path): void
+    {
+        if (! $path) {
+            return;
+        }
+
+        Storage::disk('public')->delete($path);
     }
 
     private function authorizeTransactionOwnership(Request $request, Transaction $transaction): void

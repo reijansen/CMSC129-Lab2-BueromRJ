@@ -9,7 +9,7 @@
             <p class="text-sm text-slate-500">Add a new income or expense record.</p>
         </div>
 
-        <form method="post" action="{{ route('transactions.store') }}" class="space-y-6">
+        <form method="post" action="{{ route('transactions.store') }}" enctype="multipart/form-data" class="space-y-6">
             @csrf
             @include('transactions._form')
 
@@ -24,4 +24,3 @@
         </form>
     </div>
 @endsection
-

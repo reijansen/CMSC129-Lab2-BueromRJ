@@ -111,14 +111,31 @@
     </div>
 
     <div>
-        <label for="attachment_path" class="mb-1 block text-sm font-medium text-slate-700">Attachment Path (Optional)</label>
+        <label for="attachment" class="mb-1 block text-sm font-medium text-slate-700">Attachment (Optional)</label>
         <input
-            id="attachment_path"
-            name="attachment_path"
-            type="text"
-            value="{{ old('attachment_path', $transaction?->attachment_path) }}"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            id="attachment"
+            name="attachment"
+            type="file"
+            accept=".jpg,.jpeg,.png,.pdf"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-emerald-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-emerald-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
         >
+        <p class="mt-1 text-xs text-slate-500">Allowed: JPG, JPEG, PNG, PDF. Max size: 4 MB.</p>
+        @error('attachment')
+            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+        @enderror
+
+        @if ($transaction?->attachment_path)
+            <div class="mt-2">
+                <p class="text-xs text-slate-500">Current attachment:</p>
+                <a
+                    href="{{ asset('storage/' . $transaction->attachment_path) }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-sm font-medium text-emerald-700 hover:text-emerald-800 hover:underline"
+                >
+                    View current file
+                </a>
+            </div>
+        @endif
     </div>
 </div>
-

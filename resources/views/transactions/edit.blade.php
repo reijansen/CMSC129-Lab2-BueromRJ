@@ -9,7 +9,7 @@
             <p class="text-sm text-slate-500">Update transaction details.</p>
         </div>
 
-        <form method="post" action="{{ route('transactions.update', $transaction) }}" class="space-y-6">
+        <form method="post" action="{{ route('transactions.update', $transaction) }}" enctype="multipart/form-data" class="space-y-6">
             @csrf
             @method('PUT')
             @include('transactions._form', ['transaction' => $transaction])
@@ -25,4 +25,3 @@
         </form>
     </div>
 @endsection
-
