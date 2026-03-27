@@ -1,58 +1,109 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Finko
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Finko is a Laravel-based student budget and finance tracker. It helps users manage categories, budgets, and transactions, including search/filter, soft-delete trash management, relationship views, and transaction attachment uploads.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- User authentication (register, login, forgot password)
+- Dashboard overview (allocated budget, expenses, income, balance, active budgets)
+- Category management (create, edit, view, delete)
+- Budget management (create, edit, view, soft delete, restore, force delete)
+- Transaction management (create, edit, view, soft delete, restore, force delete)
+- Relationship-aware pages (category-to-budgets/transactions, budget-to-transactions)
+- Search and filter for budgets and transactions with pagination-safe query strings
+- Transaction attachment upload, replacement, preview/link, and permanent-delete file cleanup
+- User-scoped data protection across all modules
+- Database seeding with realistic Faker data for demo/testing
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Tech Stack (and How It Was Used)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Laravel (PHP Framework)**  
+  Used as the core backend framework for MVC structure, routing, controllers, models, validation, middleware, and seeding.
 
-## Learning Laravel
+- **Blade Templating**  
+  Used to build all UI pages (guest pages, dashboard, CRUD pages, trash pages) with reusable layouts and partials.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- **Tailwind CSS**  
+  Used for consistent styling across cards, forms, tables, badges, buttons, empty states, and alert components.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- **PostgreSQL (Supabase)**  
+  Used as the relational database for users, categories, budgets, and transactions, including foreign keys and soft-delete support.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- **Eloquent ORM**  
+  Used to manage model relationships (`belongsTo`, `hasMany`), user-scoped querying, eager loading, and query filtering.
 
-## Agentic Development
+- **Laravel Storage**  
+  Used for transaction attachment upload, replacement, and cleanup on permanent delete (`storage/app/public` + `storage:link`).
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+- **Laravel Factories + Seeders + Faker**  
+  Used to generate realistic demo/test data with relationship-safe ownership across users, categories, budgets, and transactions.
 
-```bash
-composer require laravel/boost --dev
+- **Vite + npm**  
+  Used for asset bundling and running frontend build/dev workflow for Blade + Tailwind resources.
 
-php artisan boost:install
-```
+## Installation / Setup
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+1. Clone the repository.
+2. Install PHP dependencies:
+   ```bash
+   composer install
+   ```
+3. Install frontend dependencies:
+   ```bash
+   npm install
+   ```
+4. Create your environment file:
+   ```bash
+   copy .env.example .env
+   ```
+5. Generate app key:
+   ```bash
+   php artisan key:generate
+   ```
+6. Configure database credentials in `.env` (Supabase PostgreSQL connection values).
+7. Run migrations and seed sample data:
+   ```bash
+   php artisan migrate:fresh --seed
+   ```
+8. Create storage symlink (needed for uploaded transaction attachments):
+   ```bash
+   php artisan storage:link
+   ```
+9. Build/run assets and start app:
+   ```bash
+   npm run dev
+   php artisan serve
+   ```
 
-## Contributing
+## Usage Instructions
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+1. Open the app in your browser (default: `http://127.0.0.1:8000`).
+2. Login using seeded demo credentials:
+   - `demo1@finko.test` / `password123`
+   - `demo2@finko.test` / `password123`
+3. Use sidebar navigation to access:
+   - Dashboard
+   - Categories
+   - Budgets
+   - Transactions
+4. Typical workflow:
+   - Create categories
+   - Create budgets linked to categories
+   - Add transactions linked to both budgets and categories
+   - Use filters/search on budgets and transactions pages
+   - View and manage transaction attachments
 
-## Code of Conduct
+## Documentation Linkage
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- [Environment Example](.env.example)
+- [Web Routes](routes/web.php)
+- [Database Seeder](database/seeders/DatabaseSeeder.php)
+- [Budget Controller](app/Http/Controllers/BudgetController.php)
+- [Transaction Controller](app/Http/Controllers/TransactionController.php)
+- [Category Controller](app/Http/Controllers/CategoryController.php)
+- [Laravel Markdown Guide](https://docs.github.com/en/get-started/writing-on-github)
 
-## Security Vulnerabilities
+## Author / Contributors
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- Primary Developer: `BueromRJ`
+- Course Project: CMSC 129 (Software Engineering II)
