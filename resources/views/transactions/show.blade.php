@@ -19,11 +19,11 @@
 
         <dl class="grid gap-4 text-sm md:grid-cols-2">
             <div>
-                <dt class="text-slate-500">Budget</dt>
+                <dt class="text-slate-500">Related Budget</dt>
                 <dd class="font-medium text-slate-800">{{ $transaction->budget?->title ?? '-' }}</dd>
             </div>
             <div>
-                <dt class="text-slate-500">Category</dt>
+                <dt class="text-slate-500">Related Category</dt>
                 <dd class="font-medium text-slate-800">{{ $transaction->category?->name ?? '-' }}</dd>
             </div>
             <div>
@@ -40,7 +40,7 @@
             </div>
             <div>
                 <dt class="text-slate-500">Attachment</dt>
-                <dd class="font-medium text-slate-800">{{ $transaction->attachment_path ?: 'No attachment path set' }}</dd>
+                <dd class="font-medium text-slate-800">{{ $transaction->attachment_path ?: '-' }}</dd>
             </div>
             <div class="md:col-span-2">
                 <dt class="text-slate-500">Notes</dt>
@@ -58,4 +58,3 @@
         </div>
     </div>
 @endsection
-

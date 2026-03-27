@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Budget;
 use App\Models\Category;
+use App\Models\Transaction;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -87,10 +88,20 @@ class BudgetController extends Controller
     public function show(Request $request, Budget $budget): View
     {
         $this->authorizeBudgetOwnership($request, $budget);
+        $userId = $this->currentUserId($request);
         $budget->load('category');
+        $relatedTransactions = Transaction::query()
+            ->where('user_id', $userId)
+            ->where('budget_id', $budget->id)
+            ->with('category')
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get();
 
         return view('budgets.show', [
             'budget' => $budget,
+            'relatedTransactions' => $relatedTransactions,
         ]);
     }
 

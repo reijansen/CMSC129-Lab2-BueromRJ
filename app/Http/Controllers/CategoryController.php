@@ -15,6 +15,10 @@ class CategoryController extends Controller
 
         $categories = Category::query()
             ->where('user_id', $userId)
+            ->withCount([
+                'budgets as budgets_count' => fn ($query) => $query->where('user_id', $userId),
+                'transactions as transactions_count' => fn ($query) => $query->where('user_id', $userId),
+            ])
             ->orderBy('name')
             ->paginate(10);
 
@@ -49,11 +53,31 @@ class CategoryController extends Controller
             ->with('success', 'Category created successfully.');
     }
 
-    public function show(Request $request, Category $category): RedirectResponse
+    public function show(Request $request, Category $category): View
     {
         $this->authorizeCategoryOwnership($request, $category);
+        $userId = $this->currentUserId($request);
 
-        return redirect()->route('categories.edit', $category);
+        $relatedBudgets = $category->budgets()
+            ->where('user_id', $userId)
+            ->with('category')
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        $relatedTransactions = $category->transactions()
+            ->where('user_id', $userId)
+            ->with('budget')
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get();
+
+        return view('categories.show', [
+            'category' => $category,
+            'relatedBudgets' => $relatedBudgets,
+            'relatedTransactions' => $relatedTransactions,
+        ]);
     }
 
     public function edit(Request $request, Category $category): View

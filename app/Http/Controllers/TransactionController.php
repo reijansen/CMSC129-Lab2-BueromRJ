@@ -98,7 +98,11 @@ class TransactionController extends Controller
     public function show(Request $request, Transaction $transaction): View
     {
         $this->authorizeTransactionOwnership($request, $transaction);
-        $transaction->load(['budget', 'category']);
+        $userId = $this->currentUserId($request);
+        $transaction->load([
+            'budget' => fn ($query) => $query->where('user_id', $userId),
+            'category' => fn ($query) => $query->where('user_id', $userId),
+        ]);
 
         return view('transactions.show', [
             'transaction' => $transaction,

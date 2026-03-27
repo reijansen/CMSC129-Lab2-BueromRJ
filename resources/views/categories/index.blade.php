@@ -9,7 +9,7 @@
                 <h1 class="text-2xl font-semibold text-slate-900">Categories</h1>
                 <p class="text-sm text-slate-500">Manage your income and expense category types.</p>
             </div>
-            <a href="{{ route('categories.create') }}" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">
+            <a href="{{ route('categories.create') }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
                 New Category
             </a>
         </div>
@@ -21,6 +21,8 @@
                         <th class="px-4 py-3 text-left font-semibold text-slate-600">Name</th>
                         <th class="px-4 py-3 text-left font-semibold text-slate-600">Type</th>
                         <th class="px-4 py-3 text-left font-semibold text-slate-600">Color</th>
+                        <th class="px-4 py-3 text-left font-semibold text-slate-600">Budgets</th>
+                        <th class="px-4 py-3 text-left font-semibold text-slate-600">Transactions</th>
                         <th class="px-4 py-3 text-left font-semibold text-slate-600">Description</th>
                         <th class="px-4 py-3 text-right font-semibold text-slate-600">Actions</th>
                     </tr>
@@ -30,7 +32,7 @@
                         <tr>
                             <td class="px-4 py-3 font-medium text-slate-800">{{ $category->name }}</td>
                             <td class="px-4 py-3">
-                                <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                                <span class="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
                                     {{ ucfirst($category->type) }}
                                 </span>
                             </td>
@@ -44,9 +46,14 @@
                                     <span class="text-slate-400">-</span>
                                 @endif
                             </td>
+                            <td class="px-4 py-3 text-slate-700">{{ $category->budgets_count }}</td>
+                            <td class="px-4 py-3 text-slate-700">{{ $category->transactions_count }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ $category->description ?: '-' }}</td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ route('categories.show', $category) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">
+                                        View
+                                    </a>
                                     <a href="{{ route('categories.edit', $category) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">
                                         Edit
                                     </a>
@@ -62,7 +69,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-4 py-8 text-center text-slate-500">No categories found.</td>
+                            <td colspan="7" class="px-4 py-8 text-center text-slate-500">No categories found.</td>
                         </tr>
                     @endforelse
                 </tbody>
