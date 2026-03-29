@@ -6,7 +6,7 @@
     <title>@yield('title', 'Finko')</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800">
+<body class="flex min-h-screen flex-col bg-slate-50 text-slate-800">
     <header class="border-b border-emerald-100 bg-white">
         <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
             <a href="{{ route('landing') }}" class="text-xl font-semibold tracking-tight text-emerald-700">finko</a>
@@ -17,7 +17,7 @@
         </div>
     </header>
 
-    <main class="mx-auto max-w-6xl px-6 py-10">
+    <main class="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
         @include('partials.flash-messages')
         @yield('content')
     </main>
