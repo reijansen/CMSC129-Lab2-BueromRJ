@@ -2,7 +2,7 @@
     $category = $category ?? null;
 @endphp
 
-<div class="space-y-5">
+<div class="space-y-4">
     <div>
         <label for="name" class="label-control">Name</label>
         <input
@@ -46,7 +46,7 @@
         <textarea
             id="description"
             name="description"
-            rows="4"
+            rows="3"
             class="input-control"
         >{{ old('description', $category?->description) }}</textarea>
     </div>
