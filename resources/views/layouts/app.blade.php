@@ -102,7 +102,9 @@
                         <span class="truncate lg:hidden" data-drawer-label>Profile</span>
                     </a>
                     @if (session()->has('app_user_id'))
-                        <form action="{{ route('logout') }}" method="post" class="mt-1">
+                        <form action="{{ route('logout') }}" method="post" class="mt-1"
+                            data-confirm-title="Log out"
+                            data-confirm-message="Are you sure you want to log out?">
                             @csrf
                             <button type="submit"
                                 class="drawer-item drawer-tooltip-target flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100"
