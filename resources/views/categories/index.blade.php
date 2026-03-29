@@ -123,8 +123,26 @@
 
             const openButtons = document.querySelectorAll('[data-open-category-modal]');
             const closeButtons = modal.querySelectorAll('[data-close-category-modal]');
+            const form = modal.querySelector('form');
 
-            const openModal = () => {
+            const resetCategoryForm = () => {
+                if (!form) return;
+
+                const name = form.querySelector('[name="name"]');
+                const type = form.querySelector('[name="type"]');
+                const color = form.querySelector('[name="color"]');
+                const description = form.querySelector('[name="description"]');
+
+                if (name) name.value = '';
+                if (type) type.value = 'income';
+                if (color) color.value = '';
+                if (description) description.value = '';
+            };
+
+            const openModal = (reset = false) => {
+                if (reset) {
+                    resetCategoryForm();
+                }
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
                 document.body.classList.add('overflow-hidden');
@@ -137,7 +155,7 @@
             };
 
             openButtons.forEach((button) => {
-                button.addEventListener('click', openModal);
+                button.addEventListener('click', () => openModal(true));
             });
 
             closeButtons.forEach((button) => {
@@ -151,7 +169,7 @@
             });
 
             @if ($errors->any() && (old('name') !== null || old('type') !== null || old('color') !== null || old('description') !== null))
-                openModal();
+                openModal(false);
             @endif
         })();
     </script>
