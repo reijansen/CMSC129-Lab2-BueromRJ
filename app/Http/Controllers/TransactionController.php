@@ -206,9 +206,20 @@ class TransactionController extends Controller
 
     private function validateTransactionPayload(Request $request, int $userId): array
     {
+        $selectedCategoryType = null;
+        if ($request->filled('category_id')) {
+            $selectedCategoryType = Category::query()
+                ->where('user_id', $userId)
+                ->where('id', $request->input('category_id'))
+                ->value('type');
+        }
+
+        $requiresBudget = $selectedCategoryType === 'expense' || $selectedCategoryType === 'both';
+
         return $request->validate([
             'budget_id' => [
-                'required',
+                Rule::requiredIf($requiresBudget),
+                'nullable',
                 'integer',
                 Rule::exists('budgets', 'id')->where(fn ($query) => $query->where('user_id', $userId)),
             ],

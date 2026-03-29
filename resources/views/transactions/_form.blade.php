@@ -4,12 +4,32 @@
 
 <div class="space-y-5">
     <div>
-        <label for="budget_id" class="label-control">Budget</label>
+        <label for="category_id" class="label-control">Category</label>
+        <select
+            id="category_id"
+            name="category_id"
+            class="input-control"
+            required
+            data-transaction-category
+        >
+            <option value="">Select a category</option>
+            @foreach ($categories as $category)
+                <option value="{{ $category->id }}"
+                    data-category-type="{{ $category->type }}"
+                    @selected((string) old('category_id', $transaction?->category_id) === (string) $category->id)>
+                    {{ $category->name }} ({{ ucfirst($category->type) }})
+                </option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="hidden" data-budget-wrapper>
+        <label for="budget_id" class="label-control">Budget <span class="text-xs font-normal text-slate-500">(required for expense)</span></label>
         <select
             id="budget_id"
             name="budget_id"
             class="input-control"
-            required
+            data-transaction-budget
         >
             <option value="">Select a budget</option>
             @foreach ($budgets as $budget)
@@ -18,23 +38,9 @@
                 </option>
             @endforeach
         </select>
-    </div>
-
-    <div>
-        <label for="category_id" class="label-control">Category</label>
-        <select
-            id="category_id"
-            name="category_id"
-            class="input-control"
-            required
-        >
-            <option value="">Select a category</option>
-            @foreach ($categories as $category)
-                <option value="{{ $category->id }}" @selected((string) old('category_id', $transaction?->category_id) === (string) $category->id)>
-                    {{ $category->name }} ({{ ucfirst($category->type) }})
-                </option>
-            @endforeach
-        </select>
+        <p class="mt-1 text-xs text-slate-500" data-budget-hint>
+            Budget is required for expense transactions.
+        </p>
     </div>
 
     <div>
@@ -70,6 +76,7 @@
             name="type"
             class="input-control"
             required
+            data-transaction-type
         >
             @foreach (['income' => 'Income', 'expense' => 'Expense'] as $value => $label)
                 <option value="{{ $value }}" @selected(old('type', $transaction?->type) === $value)>{{ $label }}</option>
@@ -139,4 +146,25 @@
         @endif
     </div>
 </div>
+
+<script>
+    (() => {
+        const categorySelect = document.querySelector('[data-transaction-category]');
+        const budgetWrapper = document.querySelector('[data-budget-wrapper]');
+        const budgetSelect = document.querySelector('[data-transaction-budget]');
+        if (!categorySelect || !budgetWrapper || !budgetSelect) return;
+
+        const syncBudgetRequirement = () => {
+            const selected = categorySelect.options[categorySelect.selectedIndex];
+            const categoryType = selected?.dataset?.categoryType || '';
+            const needsBudget = categoryType === 'expense' || categoryType === 'both';
+
+            budgetWrapper.classList.toggle('hidden', !needsBudget);
+            budgetSelect.required = needsBudget;
+        };
+
+        categorySelect.addEventListener('change', syncBudgetRequirement);
+        syncBudgetRequirement();
+    })();
+</script>
 
