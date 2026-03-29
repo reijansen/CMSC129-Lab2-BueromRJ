@@ -54,9 +54,14 @@
                                     <a href="{{ route('categories.show', $category) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                         View
                                     </a>
-                                    <a href="{{ route('categories.edit', $category) }}" class="btn-secondary px-3 py-1.5 text-xs">
+                                    <button type="button" class="btn-secondary px-3 py-1.5 text-xs" data-open-edit-category-modal
+                                        data-id="{{ $category->id }}"
+                                        data-name="{{ $category->name }}"
+                                        data-type="{{ $category->type }}"
+                                        data-color="{{ $category->color }}"
+                                        data-description="{{ $category->description }}">
                                         Edit
-                                    </a>
+                                    </button>
                                     <form method="post" action="{{ route('categories.destroy', $category) }}">
                                         @csrf
                                         @method('DELETE')
@@ -116,14 +121,73 @@
         </div>
     </div>
 
+    <div class="fixed inset-0 z-50 hidden items-center justify-center p-4" data-edit-category-modal>
+        <div class="absolute inset-0 bg-slate-900/45" data-close-edit-category-modal></div>
+        <div class="relative flex w-full max-w-lg max-h-[85vh] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+            <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Edit Category</h2>
+                    <p class="text-sm text-slate-500">Update this category details.</p>
+                </div>
+                <button type="button"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                    data-close-edit-category-modal aria-label="Close edit category modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <form method="post" class="flex-1 space-y-4 overflow-y-auto px-5 py-4" data-edit-category-form>
+                @csrf
+                @method('PUT')
+                <div class="space-y-4">
+                    <div>
+                        <label for="edit_name" class="label-control">Name</label>
+                        <input id="edit_name" name="name" type="text" class="input-control" required>
+                    </div>
+
+                    <div>
+                        <label for="edit_type" class="label-control">Type</label>
+                        <select id="edit_type" name="type" class="input-control" required>
+                            @foreach (['income' => 'Income', 'expense' => 'Expense', 'both' => 'Both'] as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="edit_color" class="label-control">Color</label>
+                        <input id="edit_color" name="color" type="text" placeholder="e.g. #0ea5e9 or sky" class="input-control">
+                    </div>
+
+                    <div>
+                        <label for="edit_description" class="label-control">Description</label>
+                        <textarea id="edit_description" name="description" rows="3" class="input-control"></textarea>
+                    </div>
+                </div>
+
+                <div class="sticky bottom-0 flex items-center justify-end gap-2 border-t border-slate-200 bg-white pt-3">
+                    <button type="button" class="btn-secondary" data-close-edit-category-modal>Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         (() => {
             const modal = document.querySelector('[data-category-modal]');
-            if (!modal) return;
+            const editModal = document.querySelector('[data-edit-category-modal]');
+            const editForm = document.querySelector('[data-edit-category-form]');
+            if (!modal || !editModal || !editForm) return;
 
             const openButtons = document.querySelectorAll('[data-open-category-modal]');
             const closeButtons = modal.querySelectorAll('[data-close-category-modal]');
             const form = modal.querySelector('form');
+            const openEditButtons = document.querySelectorAll('[data-open-edit-category-modal]');
+            const closeEditButtons = editModal.querySelectorAll('[data-close-edit-category-modal]');
 
             const resetCategoryForm = () => {
                 if (!form) return;
@@ -154,6 +218,23 @@
                 document.body.classList.remove('overflow-hidden');
             };
 
+            const openEditModal = (payload) => {
+                editForm.action = `/categories/${payload.id}`;
+                editForm.querySelector('[name="name"]').value = payload.name || '';
+                editForm.querySelector('[name="type"]').value = payload.type || 'income';
+                editForm.querySelector('[name="color"]').value = payload.color || '';
+                editForm.querySelector('[name="description"]').value = payload.description || '';
+                editModal.classList.remove('hidden');
+                editModal.classList.add('flex');
+                document.body.classList.add('overflow-hidden');
+            };
+
+            const closeEditModal = () => {
+                editModal.classList.add('hidden');
+                editModal.classList.remove('flex');
+                document.body.classList.remove('overflow-hidden');
+            };
+
             openButtons.forEach((button) => {
                 button.addEventListener('click', () => openModal(true));
             });
@@ -162,9 +243,26 @@
                 button.addEventListener('click', closeModal);
             });
 
+            openEditButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    openEditModal({
+                        id: button.dataset.id,
+                        name: button.dataset.name,
+                        type: button.dataset.type,
+                        color: button.dataset.color,
+                        description: button.dataset.description,
+                    });
+                });
+            });
+
+            closeEditButtons.forEach((button) => {
+                button.addEventListener('click', closeEditModal);
+            });
+
             document.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape') {
                     closeModal();
+                    closeEditModal();
                 }
             });
 
