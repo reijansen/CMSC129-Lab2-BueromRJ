@@ -10,87 +10,91 @@
                 <p class="text-sm text-slate-500">Create and manage your budget allocations.</p>
             </div>
             <div class="flex items-center gap-2">
-                <a href="{{ route('budgets.trash') }}" class="btn-secondary">
-                    View Trash
-                </a>
                 <a href="{{ route('budgets.create') }}" class="btn-primary">
                     New Budget
                 </a>
             </div>
         </div>
 
-        <form method="GET" action="{{ route('budgets.index') }}" class="mb-6 rounded-lg border border-emerald-100 bg-emerald-50/40 p-4">
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <div>
-                    <label for="search" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Search</label>
-                    <input
-                        id="search"
-                        name="search"
-                        type="text"
-                        value="{{ $filters['search'] ?? '' }}"
-                        placeholder="Title or notes"
-                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                    >
-                </div>
+        <div class="mb-4 flex items-center gap-2 border-b border-slate-200 pb-3">
+            <a href="{{ route('budgets.index') }}"
+                class="rounded-lg px-3 py-1.5 text-sm font-medium bg-emerald-100 text-emerald-800">
+                Active
+            </a>
+            <a href="{{ route('budgets.trash') }}"
+                class="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+                Archived / Deleted
+            </a>
+        </div>
 
-                <div>
-                    <label for="category_id" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Category</label>
-                    <select
-                        id="category_id"
-                        name="category_id"
-                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                    >
-                        <option value="">All categories</option>
-                        @foreach ($categories as $category)
-                            <option value="{{ $category->id }}" @selected(($filters['category_id'] ?? '') == (string) $category->id)>
-                                {{ $category->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label for="status" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Status</label>
-                    <select
-                        id="status"
-                        name="status"
-                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                    >
-                        <option value="">All statuses</option>
-                        <option value="active" @selected(($filters['status'] ?? '') === 'active')>Active</option>
-                        <option value="completed" @selected(($filters['status'] ?? '') === 'completed')>Completed</option>
-                        <option value="exceeded" @selected(($filters['status'] ?? '') === 'exceeded')>Exceeded</option>
-                        <option value="archived" @selected(($filters['status'] ?? '') === 'archived')>Archived</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="period_start_from" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Period Start From</label>
-                    <input
-                        id="period_start_from"
-                        name="period_start_from"
-                        type="date"
-                        value="{{ $filters['period_start_from'] ?? '' }}"
-                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                    >
-                </div>
-
-                <div>
-                    <label for="period_end_to" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Period End To</label>
-                    <input
-                        id="period_end_to"
-                        name="period_end_to"
-                        type="date"
-                        value="{{ $filters['period_end_to'] ?? '' }}"
-                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                    >
-                </div>
+        <form method="GET" action="{{ route('budgets.index') }}" class="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2 lg:grid-cols-[1fr_180px_180px_180px_180px_auto]">
+            <div>
+                <label for="search" class="label-control mb-1">Search</label>
+                <input
+                    id="search"
+                    name="search"
+                    type="text"
+                    value="{{ $filters['search'] ?? '' }}"
+                    placeholder="Title or notes"
+                    class="input-control"
+                >
             </div>
 
-            <div class="mt-4 flex items-center gap-2">
-                <button type="submit" class="btn-primary">
-                    Apply Filters
-                </button>
+            <div>
+                <label for="category_id" class="label-control mb-1">Category</label>
+                <select
+                    id="category_id"
+                    name="category_id"
+                    class="input-control"
+                >
+                    <option value="">All categories</option>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category->id }}" @selected(($filters['category_id'] ?? '') == (string) $category->id)>
+                            {{ $category->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="status" class="label-control mb-1">Status</label>
+                <select
+                    id="status"
+                    name="status"
+                    class="input-control"
+                >
+                    <option value="">All statuses</option>
+                    <option value="active" @selected(($filters['status'] ?? '') === 'active')>Active</option>
+                    <option value="completed" @selected(($filters['status'] ?? '') === 'completed')>Completed</option>
+                    <option value="exceeded" @selected(($filters['status'] ?? '') === 'exceeded')>Exceeded</option>
+                    <option value="archived" @selected(($filters['status'] ?? '') === 'archived')>Archived</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="period_start_from" class="label-control mb-1">Period Start From</label>
+                <input
+                    id="period_start_from"
+                    name="period_start_from"
+                    type="date"
+                    value="{{ $filters['period_start_from'] ?? '' }}"
+                    class="input-control"
+                >
+            </div>
+
+            <div>
+                <label for="period_end_to" class="label-control mb-1">Period End To</label>
+                <input
+                    id="period_end_to"
+                    name="period_end_to"
+                    type="date"
+                    value="{{ $filters['period_end_to'] ?? '' }}"
+                    class="input-control"
+                >
+            </div>
+
+            <div class="flex items-end gap-2">
+                <button type="submit" class="btn-primary">Apply</button>
                 <a href="{{ route('budgets.index') }}" class="btn-secondary">
                     Clear
                 </a>
@@ -127,11 +131,11 @@
                                 <div class="flex items-center justify-end gap-2">
                                     <a href="{{ route('budgets.show', $budget) }}" class="btn-secondary px-3 py-1.5 text-xs">View</a>
                                     <a href="{{ route('budgets.edit', $budget) }}" class="btn-secondary px-3 py-1.5 text-xs">Edit</a>
-                                    <form method="post" action="{{ route('budgets.destroy', $budget) }}" data-confirm-message="Delete this budget?">
+                                    <form method="post" action="{{ route('budgets.destroy', $budget) }}" data-confirm-message="Archive this budget?">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="rounded-md border border-red-300 px-3 py-1.5 text-red-700 hover:bg-red-50">
-                                            Delete
+                                        <button type="submit" class="rounded-md border border-amber-300 px-3 py-1.5 text-amber-700 hover:bg-amber-50">
+                                            Archive
                                         </button>
                                     </form>
                                 </div>

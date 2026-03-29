@@ -9,8 +9,16 @@
                 <h1 class="text-2xl font-semibold text-slate-900">Budget Trash</h1>
                 <p class="text-sm text-slate-500">Restore deleted budgets or permanently remove them.</p>
             </div>
-            <a href="{{ route('budgets.index') }}" class="btn-secondary">
-                Back to Budgets
+        </div>
+
+        <div class="mb-4 flex items-center gap-2 border-b border-slate-200 pb-3">
+            <a href="{{ route('budgets.index') }}"
+                class="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+                Active
+            </a>
+            <a href="{{ route('budgets.trash') }}"
+                class="rounded-lg px-3 py-1.5 text-sm font-medium bg-amber-100 text-amber-800">
+                Archived / Deleted
             </a>
         </div>
 

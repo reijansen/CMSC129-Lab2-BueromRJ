@@ -163,7 +163,7 @@ class TransactionController extends Controller
 
         return redirect()
             ->route('transactions.index')
-            ->with('success', 'Transaction deleted successfully.');
+            ->with('success', 'Transaction archived successfully.');
     }
 
     public function trash(Request $request): View

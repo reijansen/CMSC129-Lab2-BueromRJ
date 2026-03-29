@@ -138,7 +138,7 @@ class BudgetController extends Controller
 
         return redirect()
             ->route('budgets.index')
-            ->with('success', 'Budget deleted successfully.');
+            ->with('success', 'Budget archived successfully.');
     }
 
     public function trash(Request $request): View

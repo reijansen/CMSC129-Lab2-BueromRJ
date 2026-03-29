@@ -10,98 +10,100 @@
                 <p class="text-sm text-slate-500">Track all income and expense records.</p>
             </div>
             <div class="flex items-center gap-2">
-                <a href="{{ route('transactions.trash') }}" class="btn-secondary">
-                    View Trash
-                </a>
                 <a href="{{ route('transactions.create') }}" class="btn-primary">New Transaction</a>
             </div>
         </div>
 
-        <form method="GET" action="{{ route('transactions.index') }}" class="mb-6 rounded-lg border border-emerald-100 bg-emerald-50/40 p-4">
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <div>
-                    <label for="search" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Search</label>
-                    <input
-                        id="search"
-                        name="search"
-                        type="text"
-                        value="{{ $filters['search'] ?? '' }}"
-                        placeholder="Title or notes"
-                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                    >
-                </div>
+        <div class="mb-4 flex items-center gap-2 border-b border-slate-200 pb-3">
+            <a href="{{ route('transactions.index') }}"
+                class="rounded-lg px-3 py-1.5 text-sm font-medium bg-emerald-100 text-emerald-800">
+                Active
+            </a>
+            <a href="{{ route('transactions.trash') }}"
+                class="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+                Archived / Deleted
+            </a>
+        </div>
 
-                <div>
-                    <label for="type_filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Type</label>
-                    <select
-                        id="type_filter"
-                        name="type"
-                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                    >
-                        <option value="">All types</option>
-                        <option value="income" @selected(($filters['type'] ?? '') === 'income')>Income</option>
-                        <option value="expense" @selected(($filters['type'] ?? '') === 'expense')>Expense</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="category_id" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Category</label>
-                    <select
-                        id="category_id"
-                        name="category_id"
-                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                    >
-                        <option value="">All categories</option>
-                        @foreach ($categories as $category)
-                            <option value="{{ $category->id }}" @selected(($filters['category_id'] ?? '') == (string) $category->id)>
-                                {{ $category->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label for="payment_method" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Payment Method</label>
-                    <input
-                        id="payment_method"
-                        name="payment_method"
-                        type="text"
-                        value="{{ $filters['payment_method'] ?? '' }}"
-                        placeholder="Cash, Card, GCash..."
-                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                    >
-                </div>
-
-                <div>
-                    <label for="date_from" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Date From</label>
-                    <input
-                        id="date_from"
-                        name="date_from"
-                        type="date"
-                        value="{{ $filters['date_from'] ?? '' }}"
-                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                    >
-                </div>
-
-                <div>
-                    <label for="date_to" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">Date To</label>
-                    <input
-                        id="date_to"
-                        name="date_to"
-                        type="date"
-                        value="{{ $filters['date_to'] ?? '' }}"
-                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                    >
-                </div>
+        <form method="GET" action="{{ route('transactions.index') }}" class="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2 lg:grid-cols-[1fr_180px_200px_180px_180px_180px_auto]">
+            <div>
+                <label for="search" class="label-control mb-1">Search</label>
+                <input
+                    id="search"
+                    name="search"
+                    type="text"
+                    value="{{ $filters['search'] ?? '' }}"
+                    placeholder="Title or notes"
+                    class="input-control"
+                >
             </div>
 
-            <div class="mt-4 flex items-center gap-2">
-                <button type="submit" class="btn-primary">
-                    Apply Filters
-                </button>
-                <a href="{{ route('transactions.index') }}" class="btn-secondary">
-                    Clear
-                </a>
+            <div>
+                <label for="type_filter" class="label-control mb-1">Type</label>
+                <select
+                    id="type_filter"
+                    name="type"
+                    class="input-control"
+                >
+                    <option value="">All types</option>
+                    <option value="income" @selected(($filters['type'] ?? '') === 'income')>Income</option>
+                    <option value="expense" @selected(($filters['type'] ?? '') === 'expense')>Expense</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="category_id" class="label-control mb-1">Category</label>
+                <select
+                    id="category_id"
+                    name="category_id"
+                    class="input-control"
+                >
+                    <option value="">All categories</option>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category->id }}" @selected(($filters['category_id'] ?? '') == (string) $category->id)>
+                            {{ $category->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="payment_method" class="label-control mb-1">Payment Method</label>
+                <input
+                    id="payment_method"
+                    name="payment_method"
+                    type="text"
+                    value="{{ $filters['payment_method'] ?? '' }}"
+                    placeholder="Cash, Card, GCash..."
+                    class="input-control"
+                >
+            </div>
+
+            <div>
+                <label for="date_from" class="label-control mb-1">Date From</label>
+                <input
+                    id="date_from"
+                    name="date_from"
+                    type="date"
+                    value="{{ $filters['date_from'] ?? '' }}"
+                    class="input-control"
+                >
+            </div>
+
+            <div>
+                <label for="date_to" class="label-control mb-1">Date To</label>
+                <input
+                    id="date_to"
+                    name="date_to"
+                    type="date"
+                    value="{{ $filters['date_to'] ?? '' }}"
+                    class="input-control"
+                >
+            </div>
+
+            <div class="flex items-end gap-2">
+                <button type="submit" class="btn-primary">Apply</button>
+                <a href="{{ route('transactions.index') }}" class="btn-secondary">Clear</a>
             </div>
         </form>
 
@@ -157,11 +159,11 @@
                                     <button type="button" class="btn-secondary px-3 py-1.5 text-xs" data-open-edit-modal="{{ $transaction->id }}">
                                         Edit
                                     </button>
-                                    <form method="post" action="{{ route('transactions.destroy', $transaction) }}" data-confirm-message="Delete this transaction?">
+                                    <form method="post" action="{{ route('transactions.destroy', $transaction) }}" data-confirm-message="Archive this transaction?">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="rounded-md border border-red-300 px-3 py-1.5 text-red-700 hover:bg-red-50">
-                                            Delete
+                                        <button type="submit" class="rounded-md border border-amber-300 px-3 py-1.5 text-amber-700 hover:bg-amber-50">
+                                            Archive
                                         </button>
                                     </form>
                                 </div>
