@@ -9,10 +9,45 @@
                 <h1 class="text-2xl font-semibold text-slate-900">Categories</h1>
                 <p class="text-sm text-slate-500">Manage your income and expense category types.</p>
             </div>
-            <button type="button" class="btn-primary" data-open-category-modal>
-                New Category
-            </button>
+            @if (($tab ?? 'active') === 'active')
+                <button type="button" class="btn-primary" data-open-category-modal>
+                    New Category
+                </button>
+            @endif
         </div>
+
+        <div class="mb-4 flex items-center gap-2 border-b border-slate-200 pb-3">
+            <a href="{{ route('categories.index', ['tab' => 'active']) }}"
+                class="{{ ($tab ?? 'active') === 'active' ? 'bg-emerald-100 text-emerald-800' : 'text-slate-600 hover:bg-slate-100' }} rounded-lg px-3 py-1.5 text-sm font-medium">
+                Active
+            </a>
+            <a href="{{ route('categories.index', ['tab' => 'deleted']) }}"
+                class="{{ ($tab ?? 'active') === 'deleted' ? 'bg-amber-100 text-amber-800' : 'text-slate-600 hover:bg-slate-100' }} rounded-lg px-3 py-1.5 text-sm font-medium">
+                Archived / Deleted
+            </a>
+        </div>
+
+        <form method="get" action="{{ route('categories.index') }}" class="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_180px_auto]">
+            <input type="hidden" name="tab" value="{{ $tab ?? 'active' }}">
+            <div>
+                <label for="q" class="label-control mb-1">Search</label>
+                <input id="q" name="q" type="text" value="{{ $search ?? '' }}" class="input-control"
+                    placeholder="Search by name, description, or color">
+            </div>
+            <div>
+                <label for="type_filter" class="label-control mb-1">Type</label>
+                <select id="type_filter" name="type" class="input-control">
+                    <option value="">All Types</option>
+                    <option value="income" @selected(($type ?? '') === 'income')>Income</option>
+                    <option value="expense" @selected(($type ?? '') === 'expense')>Expense</option>
+                    <option value="both" @selected(($type ?? '') === 'both')>Both</option>
+                </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="btn-primary">Apply</button>
+                <a href="{{ route('categories.index', ['tab' => $tab ?? 'active']) }}" class="btn-secondary">Clear</a>
+            </div>
+        </form>
 
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
@@ -24,6 +59,9 @@
                         <th class="px-4 py-3 text-left font-semibold text-slate-600">Budgets</th>
                         <th class="px-4 py-3 text-left font-semibold text-slate-600">Transactions</th>
                         <th class="px-4 py-3 text-left font-semibold text-slate-600">Description</th>
+                        @if (($tab ?? 'active') === 'deleted')
+                            <th class="px-4 py-3 text-left font-semibold text-slate-600">Deleted At</th>
+                        @endif
                         <th class="px-4 py-3 text-right font-semibold text-slate-600">Actions</th>
                     </tr>
                 </thead>
@@ -49,37 +87,63 @@
                             <td class="px-4 py-3 text-slate-700">{{ $category->budgets_count }}</td>
                             <td class="px-4 py-3 text-slate-700">{{ $category->transactions_count }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ $category->description ?: '-' }}</td>
+                            @if (($tab ?? 'active') === 'deleted')
+                                <td class="px-4 py-3 text-slate-600">{{ $category->deleted_at?->format('M d, Y h:i A') }}</td>
+                            @endif
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('categories.show', $category) }}" class="btn-secondary px-3 py-1.5 text-xs">
-                                        View
-                                    </a>
-                                    <button type="button" class="btn-secondary px-3 py-1.5 text-xs" data-open-edit-category-modal
-                                        data-id="{{ $category->id }}"
-                                        data-name="{{ $category->name }}"
-                                        data-type="{{ $category->type }}"
-                                        data-color="{{ $category->color }}"
-                                        data-description="{{ $category->description }}">
-                                        Edit
-                                    </button>
-                                    <form method="post" action="{{ route('categories.destroy', $category) }}">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="rounded-md border border-red-300 px-3 py-1.5 text-red-700 hover:bg-red-50" onclick="return confirm('Delete this category?')">
-                                            Delete
+                                    @if (($tab ?? 'active') === 'active')
+                                        <a href="{{ route('categories.show', $category) }}" class="btn-secondary px-3 py-1.5 text-xs">
+                                            View
+                                        </a>
+                                        <button type="button" class="btn-secondary px-3 py-1.5 text-xs" data-open-edit-category-modal
+                                            data-id="{{ $category->id }}"
+                                            data-name="{{ $category->name }}"
+                                            data-type="{{ $category->type }}"
+                                            data-color="{{ $category->color }}"
+                                            data-description="{{ $category->description }}">
+                                            Edit
                                         </button>
-                                    </form>
+                                        <form method="post" action="{{ route('categories.destroy', $category) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="rounded-md border border-amber-300 px-3 py-1.5 text-amber-700 hover:bg-amber-50" onclick="return confirm('Archive this category?')">
+                                                Archive
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form method="post" action="{{ route('categories.restore', $category->id) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="rounded-md border border-emerald-300 px-3 py-1.5 text-emerald-700 hover:bg-emerald-50">
+                                                Restore
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{{ route('categories.force-delete', $category->id) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="rounded-md border border-red-300 px-3 py-1.5 text-red-700 hover:bg-red-50"
+                                                onclick="return confirm('Permanently delete this category? This cannot be undone.')">
+                                                Permanently Delete
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-8 text-center">
-                                <p class="text-sm font-medium text-slate-700">No categories yet.</p>
-                                <p class="mt-1 text-xs text-slate-500">Create your first category to organize budgets and transactions.</p>
-                                <button type="button" data-open-category-modal class="mt-3 inline-flex btn-primary px-3 py-1.5 text-xs">
-                                    Create Category
-                                </button>
+                            <td colspan="{{ ($tab ?? 'active') === 'deleted' ? 8 : 7 }}" class="px-4 py-8 text-center">
+                                @if (($tab ?? 'active') === 'active')
+                                    <p class="text-sm font-medium text-slate-700">No categories yet.</p>
+                                    <p class="mt-1 text-xs text-slate-500">Create your first category to organize budgets and transactions.</p>
+                                    <button type="button" data-open-category-modal class="mt-3 inline-flex btn-primary px-3 py-1.5 text-xs">
+                                        Create Category
+                                    </button>
+                                @else
+                                    <p class="text-sm font-medium text-slate-700">No archived/deleted categories.</p>
+                                    <p class="mt-1 text-xs text-slate-500">Archived categories will appear here.</p>
+                                @endif
                             </td>
                         </tr>
                     @endforelse

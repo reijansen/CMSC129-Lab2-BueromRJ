@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Budget;
 use App\Models\Category;
+use App\Models\Transaction;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -12,18 +15,44 @@ class CategoryController extends Controller
     public function index(Request $request): View
     {
         $userId = $this->currentUserId($request);
+        $search = trim((string) $request->query('q', ''));
+        $type = (string) $request->query('type', '');
+        $tab = (string) $request->query('tab', 'active');
+        $isDeletedTab = $tab === 'deleted';
 
-        $categories = Category::query()
+        $categoriesQuery = Category::query()
             ->where('user_id', $userId)
             ->withCount([
-                'budgets as budgets_count' => fn ($query) => $query->where('user_id', $userId),
-                'transactions as transactions_count' => fn ($query) => $query->where('user_id', $userId),
-            ])
+                'budgets as budgets_count' => fn ($query) => $query->where('user_id', $userId)->withTrashed(),
+                'transactions as transactions_count' => fn ($query) => $query->where('user_id', $userId)->withTrashed(),
+            ]);
+
+        if ($isDeletedTab) {
+            $categoriesQuery->onlyTrashed();
+        }
+
+        if ($search !== '') {
+            $categoriesQuery->where(function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('color', 'like', "%{$search}%");
+            });
+        }
+
+        if (in_array($type, ['income', 'expense', 'both'], true)) {
+            $categoriesQuery->where('type', $type);
+        }
+
+        $categories = $categoriesQuery
             ->orderBy('name')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('categories.index', [
             'categories' => $categories,
+            'search' => $search,
+            'type' => $type,
+            'tab' => $tab,
         ]);
     }
 
@@ -111,17 +140,54 @@ class CategoryController extends Controller
     {
         $this->authorizeCategoryOwnership($request, $category);
 
-        if ($category->budgets()->exists() || $category->transactions()->exists()) {
-            return redirect()
-                ->route('categories.index')
-                ->with('error', 'Category cannot be deleted because it is already in use.');
-        }
-
         $category->delete();
 
         return redirect()
             ->route('categories.index')
-            ->with('success', 'Category deleted successfully.');
+            ->with('success', 'Category archived successfully.');
+    }
+
+    public function restore(Request $request, int $id): RedirectResponse
+    {
+        $category = $this->trashedCategoryForUser($request, $id);
+        $category->restore();
+
+        return redirect()
+            ->route('categories.index', ['tab' => 'deleted'])
+            ->with('success', 'Category restored successfully.');
+    }
+
+    public function forceDelete(Request $request, int $id): RedirectResponse
+    {
+        $category = $this->trashedCategoryForUser($request, $id);
+
+        $hasRelatedBudgets = Budget::withTrashed()
+            ->where('user_id', $this->currentUserId($request))
+            ->where('category_id', $category->id)
+            ->exists();
+
+        $hasRelatedTransactions = Transaction::withTrashed()
+            ->where('user_id', $this->currentUserId($request))
+            ->where('category_id', $category->id)
+            ->exists();
+
+        if ($hasRelatedBudgets || $hasRelatedTransactions) {
+            return redirect()
+                ->route('categories.index', ['tab' => 'deleted'])
+                ->with('error', 'Category cannot be permanently deleted because it is referenced by budgets or transactions.');
+        }
+
+        try {
+            $category->forceDelete();
+        } catch (QueryException) {
+            return redirect()
+                ->route('categories.index', ['tab' => 'deleted'])
+                ->with('error', 'Category cannot be permanently deleted due to a database constraint.');
+        }
+
+        return redirect()
+            ->route('categories.index', ['tab' => 'deleted'])
+            ->with('success', 'Category permanently deleted.');
     }
 
     private function authorizeCategoryOwnership(Request $request, Category $category): void
@@ -129,6 +195,20 @@ class CategoryController extends Controller
         if ((int) $category->user_id !== $this->currentUserId($request)) {
             abort(403);
         }
+    }
+
+    private function trashedCategoryForUser(Request $request, int $id): Category
+    {
+        $category = Category::onlyTrashed()
+            ->where('user_id', $this->currentUserId($request))
+            ->where('id', $id)
+            ->first();
+
+        if (! $category) {
+            abort(403);
+        }
+
+        return $category;
     }
 
     private function currentUserId(Request $request): int
