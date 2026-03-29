@@ -1,5 +1,28 @@
 import './bootstrap';
 
+const setupRequiredFieldMarkers = () => {
+    const requiredControls = document.querySelectorAll('input[required], select[required], textarea[required]');
+
+    requiredControls.forEach((control) => {
+        if (!control.id || control.type === 'hidden') {
+            return;
+        }
+
+        const label = document.querySelector(`label[for="${control.id}"]`);
+        if (!label || label.querySelector('[data-required-asterisk]')) {
+            return;
+        }
+
+        const marker = document.createElement('span');
+        marker.textContent = ' *';
+        marker.className = 'text-red-600';
+        marker.setAttribute('data-required-asterisk', 'true');
+        marker.setAttribute('aria-hidden', 'true');
+
+        label.appendChild(marker);
+    });
+};
+
 const setupPasswordToggles = () => {
     const toggleGroups = document.querySelectorAll('[data-password-toggle]');
 
@@ -24,7 +47,11 @@ const setupPasswordToggles = () => {
 };
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupPasswordToggles);
+    document.addEventListener('DOMContentLoaded', () => {
+        setupRequiredFieldMarkers();
+        setupPasswordToggles();
+    });
 } else {
+    setupRequiredFieldMarkers();
     setupPasswordToggles();
 }
