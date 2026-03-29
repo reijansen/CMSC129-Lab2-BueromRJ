@@ -30,6 +30,10 @@ class TransactionController extends Controller
             ->where('user_id', $userId)
             ->orderBy('name')
             ->get();
+        $budgets = Budget::query()
+            ->where('user_id', $userId)
+            ->orderBy('title')
+            ->get();
 
         $transactions = Transaction::query()
             ->where('user_id', $userId)
@@ -57,28 +61,14 @@ class TransactionController extends Controller
         return view('transactions.index', [
             'transactions' => $transactions,
             'categories' => $categories,
+            'budgets' => $budgets,
             'filters' => $filters,
         ]);
     }
 
-    public function create(Request $request): View
+    public function create(Request $request): RedirectResponse
     {
-        $userId = $this->currentUserId($request);
-
-        $budgets = Budget::query()
-            ->where('user_id', $userId)
-            ->orderBy('title')
-            ->get();
-
-        $categories = Category::query()
-            ->where('user_id', $userId)
-            ->orderBy('name')
-            ->get();
-
-        return view('transactions.create', [
-            'budgets' => $budgets,
-            'categories' => $categories,
-        ]);
+        return redirect()->route('transactions.index', ['open' => 'create']);
     }
 
     public function store(Request $request): RedirectResponse
