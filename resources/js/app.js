@@ -1,5 +1,46 @@
 import './bootstrap';
 
+const setupThemeToggle = () => {
+    const key = 'finko-theme';
+    const root = document.documentElement;
+    const buttons = document.querySelectorAll('[data-theme-toggle]');
+
+    if (!buttons.length) {
+        return;
+    }
+
+    const applyTheme = (theme) => {
+        const isDark = theme === 'dark';
+        root.classList.toggle('dark', isDark);
+        root.setAttribute('data-theme', theme);
+
+        buttons.forEach((button) => {
+            const sun = button.querySelector('[data-theme-icon="sun"]');
+            const moon = button.querySelector('[data-theme-icon="moon"]');
+            sun?.classList.toggle('hidden', isDark);
+            moon?.classList.toggle('hidden', !isDark);
+            button.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+            button.setAttribute('title', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+        });
+    };
+
+    const stored = localStorage.getItem(key);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialTheme = stored === 'dark' || stored === 'light'
+        ? stored
+        : (prefersDark ? 'dark' : 'light');
+
+    applyTheme(initialTheme);
+
+    buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const nextTheme = root.classList.contains('dark') ? 'light' : 'dark';
+            localStorage.setItem(key, nextTheme);
+            applyTheme(nextTheme);
+        });
+    });
+};
+
 const setupRequiredFieldMarkers = () => {
     const requiredControls = document.querySelectorAll('input[required], select[required], textarea[required]');
 
@@ -188,12 +229,14 @@ const setupConfirmationModal = () => {
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+        setupThemeToggle();
         setupDrawer();
         setupConfirmationModal();
         setupRequiredFieldMarkers();
         setupPasswordToggles();
     });
 } else {
+    setupThemeToggle();
     setupDrawer();
     setupConfirmationModal();
     setupRequiredFieldMarkers();

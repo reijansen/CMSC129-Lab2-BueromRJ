@@ -3,7 +3,7 @@
 @section('title', 'Sign Up')
 
 @section('content')
-    <div class="app-card mx-auto max-w-md rounded-2xl">
+    <div class="app-card glow-green-card mx-auto max-w-md rounded-2xl">
         <h1 class="mb-1 text-2xl font-semibold text-slate-900">Create Account</h1>
         <p class="mb-6 text-sm text-slate-600">Start organizing your student finances with Finko.</p>
 

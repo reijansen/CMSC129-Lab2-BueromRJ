@@ -23,11 +23,11 @@
                 <p class="text-xs uppercase tracking-wide text-slate-500">Total Expenses</p>
                 <p class="mt-2 text-xl font-semibold text-amber-700">PHP {{ number_format($totalExpenses, 2) }}</p>
             </div>
-            <div class="app-card p-4">
+            <div class="app-card glow-card p-4">
                 <p class="text-xs uppercase tracking-wide text-slate-500">Total Income</p>
                 <p class="mt-2 text-xl font-semibold text-emerald-700">PHP {{ number_format($totalIncome, 2) }}</p>
             </div>
-            <div class="app-card p-4">
+            <div class="app-card glow-card p-4">
                 <p class="text-xs uppercase tracking-wide text-slate-500">Remaining Balance</p>
                 <p class="mt-2 text-xl font-semibold {{ $remainingBalance >= 0 ? 'text-emerald-700' : 'text-red-700' }}">
                     PHP {{ number_format($remainingBalance, 2) }}
