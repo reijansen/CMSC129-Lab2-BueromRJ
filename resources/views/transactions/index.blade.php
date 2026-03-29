@@ -25,7 +25,8 @@
             </a>
         </div>
 
-        <form method="GET" action="{{ route('transactions.index') }}" class="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2 lg:grid-cols-[1fr_180px_200px_180px_180px_180px_auto]">
+        <form method="GET" action="{{ route('transactions.index') }}" class="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
             <div>
                 <label for="search" class="label-control mb-1">Search</label>
                 <input
@@ -100,8 +101,9 @@
                     class="input-control"
                 >
             </div>
+            </div>
 
-            <div class="flex items-end gap-2">
+            <div class="mt-3 flex flex-wrap items-end gap-2">
                 <button type="submit" class="btn-primary">Apply</button>
                 <a href="{{ route('transactions.index') }}" class="btn-secondary">Clear</a>
             </div>
