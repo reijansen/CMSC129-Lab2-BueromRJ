@@ -127,10 +127,10 @@
                                 <div class="flex items-center justify-end gap-2">
                                     <a href="{{ route('budgets.show', $budget) }}" class="btn-secondary px-3 py-1.5 text-xs">View</a>
                                     <a href="{{ route('budgets.edit', $budget) }}" class="btn-secondary px-3 py-1.5 text-xs">Edit</a>
-                                    <form method="post" action="{{ route('budgets.destroy', $budget) }}">
+                                    <form method="post" action="{{ route('budgets.destroy', $budget) }}" data-confirm-message="Delete this budget?">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="rounded-md border border-red-300 px-3 py-1.5 text-red-700 hover:bg-red-50" onclick="return confirm('Delete this budget?')">
+                                        <button type="submit" class="rounded-md border border-red-300 px-3 py-1.5 text-red-700 hover:bg-red-50">
                                             Delete
                                         </button>
                                     </form>

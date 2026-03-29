@@ -132,14 +132,70 @@ const setupDrawer = () => {
     applyDrawerState();
 };
 
+const setupConfirmationModal = () => {
+    const modal = document.querySelector('[data-confirm-modal]');
+    if (!modal) {
+        return;
+    }
+
+    const messageEl = modal.querySelector('[data-confirm-message]');
+    const titleEl = modal.querySelector('[data-confirm-title]');
+    const acceptButton = modal.querySelector('[data-confirm-accept]');
+    const cancelButtons = modal.querySelectorAll('[data-confirm-cancel]');
+    let targetForm = null;
+
+    const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.classList.remove('overflow-hidden');
+        targetForm = null;
+    };
+
+    const openModal = (form) => {
+        targetForm = form;
+        const msg = form.dataset.confirmMessage || 'Are you sure you want to proceed?';
+        const title = form.dataset.confirmTitle || 'Please confirm';
+        messageEl.textContent = msg;
+        titleEl.textContent = title;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.classList.add('overflow-hidden');
+    };
+
+    document.querySelectorAll('form[data-confirm-message]').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            openModal(form);
+        });
+    });
+
+    cancelButtons.forEach((button) => {
+        button.addEventListener('click', closeModal);
+    });
+
+    acceptButton?.addEventListener('click', () => {
+        if (targetForm) {
+            targetForm.submit();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+    });
+};
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         setupDrawer();
+        setupConfirmationModal();
         setupRequiredFieldMarkers();
         setupPasswordToggles();
     });
 } else {
     setupDrawer();
+    setupConfirmationModal();
     setupRequiredFieldMarkers();
     setupPasswordToggles();
 }

@@ -128,5 +128,22 @@
             @yield('content')
         </main>
     </div>
+
+    <div class="fixed inset-0 z-[60] hidden items-center justify-center p-4" data-confirm-modal>
+        <div class="absolute inset-0 bg-slate-900/45" data-confirm-cancel></div>
+        <div class="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl">
+            <div class="border-b border-slate-200 px-5 py-4">
+                <h2 class="text-lg font-semibold text-slate-900" data-confirm-title>Please confirm</h2>
+            </div>
+            <div class="px-5 py-4">
+                <p class="text-sm text-slate-700" data-confirm-message>Are you sure you want to proceed?</p>
+            </div>
+            <div class="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-4">
+                <button type="button" class="btn-secondary" data-confirm-cancel>Cancel</button>
+                <button type="button" class="rounded-lg border border-red-300 bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
+                    data-confirm-accept>Confirm</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

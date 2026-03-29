@@ -47,10 +47,10 @@
                                             Restore
                                         </button>
                                     </form>
-                                    <form method="post" action="{{ route('transactions.force-delete', $transaction->id) }}">
+                                    <form method="post" action="{{ route('transactions.force-delete', $transaction->id) }}" data-confirm-message="Permanently delete this transaction? This cannot be undone.">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="rounded-md border border-red-300 px-3 py-1.5 text-red-700 hover:bg-red-50" onclick="return confirm('Permanently delete this transaction? This cannot be undone.')">
+                                        <button type="submit" class="rounded-md border border-red-300 px-3 py-1.5 text-red-700 hover:bg-red-50">
                                             Permanently Delete
                                         </button>
                                     </form>

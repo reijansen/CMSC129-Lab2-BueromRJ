@@ -159,10 +159,10 @@
                                     <a href="{{ route('transactions.edit', $transaction) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                         Edit
                                     </a>
-                                    <form method="post" action="{{ route('transactions.destroy', $transaction) }}">
+                                    <form method="post" action="{{ route('transactions.destroy', $transaction) }}" data-confirm-message="Delete this transaction?">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="rounded-md border border-red-300 px-3 py-1.5 text-red-700 hover:bg-red-50" onclick="return confirm('Delete this transaction?')">
+                                        <button type="submit" class="rounded-md border border-red-300 px-3 py-1.5 text-red-700 hover:bg-red-50">
                                             Delete
                                         </button>
                                     </form>
