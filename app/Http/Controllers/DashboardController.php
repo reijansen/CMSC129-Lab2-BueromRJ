@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Budget;
+use App\Models\Category;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -51,6 +52,16 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        $categories = Category::query()
+            ->where('user_id', $userId)
+            ->orderBy('name')
+            ->get();
+
+        $budgets = Budget::query()
+            ->where('user_id', $userId)
+            ->orderBy('title')
+            ->get();
+
         return view('dashboard.index', [
             'totalAllocatedBudget' => $totalAllocatedBudget,
             'totalExpenses' => $totalExpenses,
@@ -59,6 +70,8 @@ class DashboardController extends Controller
             'activeBudgetsCount' => $activeBudgetsCount,
             'recentTransactions' => $recentTransactions,
             'activeBudgets' => $activeBudgets,
+            'categories' => $categories,
+            'budgets' => $budgets,
         ]);
     }
 

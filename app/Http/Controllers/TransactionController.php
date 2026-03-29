@@ -66,9 +66,24 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function create(Request $request): RedirectResponse
+    public function create(Request $request): View
     {
-        return redirect()->route('transactions.index', ['open' => 'create']);
+        $userId = $this->currentUserId($request);
+
+        $budgets = Budget::query()
+            ->where('user_id', $userId)
+            ->orderBy('title')
+            ->get();
+
+        $categories = Category::query()
+            ->where('user_id', $userId)
+            ->orderBy('name')
+            ->get();
+
+        return view('transactions.create', [
+            'budgets' => $budgets,
+            'categories' => $categories,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
