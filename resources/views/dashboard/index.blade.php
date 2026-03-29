@@ -172,7 +172,24 @@
 
             const resetTransactionForm = () => {
                 if (!form) return;
-                form.reset();
+
+                const setValue = (name, value = '') => {
+                    const el = form.querySelector(`[name="${name}"]`);
+                    if (el) {
+                        el.value = value;
+                    }
+                };
+
+                setValue('category_id', '');
+                setValue('budget_id', '');
+                setValue('title', '');
+                setValue('amount', '');
+                setValue('type', 'income');
+                setValue('transaction_date', '');
+                setValue('payment_method', '');
+                setValue('notes', '');
+                setValue('attachment', '');
+
                 const categorySelect = form.querySelector('[data-transaction-category]');
                 categorySelect?.dispatchEvent(new Event('change'));
             };
