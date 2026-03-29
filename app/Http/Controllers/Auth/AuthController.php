@@ -73,7 +73,13 @@ class AuthController extends Controller
         }
 
         if (! isset($response['access_token'])) {
-            return redirect()->route('login')->with('status', 'Account created. Check your email for confirmation, then sign in.');
+            try {
+                $response = $this->supabaseAuthService->signInWithPassword($credentials['email'], $credentials['password']);
+            } catch (RuntimeException $exception) {
+                return back()->withInput()->withErrors([
+                    'email' => 'Account created, but auto-login failed. Please log in manually.',
+                ]);
+            }
         }
 
         $this->persistSession($request, $response, $credentials['name']);
