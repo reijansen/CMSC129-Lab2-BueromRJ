@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\DefaultCategoryService;
 use App\Services\SupabaseAuthService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,9 +15,10 @@ use RuntimeException;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly SupabaseAuthService $supabaseAuthService)
-    {
-    }
+    public function __construct(
+        private readonly SupabaseAuthService $supabaseAuthService,
+        private readonly DefaultCategoryService $defaultCategoryService
+    ) {}
 
     public function showLogin(): View|RedirectResponse
     {
@@ -141,6 +143,8 @@ class AuthController extends Controller
                 'password' => Hash::make(Str::random(40)),
             ]
         );
+
+        $this->defaultCategoryService->seedIfEmpty($localUser);
 
         $request->session()->regenerate();
         $request->session()->put([
