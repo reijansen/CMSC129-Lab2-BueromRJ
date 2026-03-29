@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,7 @@ Route::middleware(['web', 'supabase.auth'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::resource('categories', CategoryController::class);
     Route::get('/budgets/trash', [BudgetController::class, 'trash'])->name('budgets.trash');
     Route::patch('/budgets/{id}/restore', [BudgetController::class, 'restore'])->name('budgets.restore');

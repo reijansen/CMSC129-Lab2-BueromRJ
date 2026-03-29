@@ -63,3 +63,26 @@
         @apply px-4 py-3 text-slate-700;
     }
 }
+
+@media (min-width: 1024px) {
+    [data-drawer][data-collapsed='true'] {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+
+    [data-drawer][data-collapsed='true'] .drawer-inner {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    [data-drawer][data-collapsed='true'] .drawer-item {
+        width: 2.5rem;
+        height: 2.5rem;
+        margin-left: auto;
+        margin-right: auto;
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+        gap: 0;
+    }
+}
