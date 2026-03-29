@@ -10,9 +10,7 @@
                 <p class="section-subtitle">Welcome back. Here is your latest finance overview.</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <a href="{{ route('budgets.create') }}" class="btn-primary">New Budget</a>
                 <a href="{{ route('transactions.index', ['open' => 'create', 'from' => 'dashboard']) }}" class="btn-primary">New Transaction</a>
-                <a href="{{ route('categories.index') }}" class="btn-secondary border-emerald-200 text-emerald-700 hover:bg-emerald-50">View Categories</a>
             </div>
         </div>
 
