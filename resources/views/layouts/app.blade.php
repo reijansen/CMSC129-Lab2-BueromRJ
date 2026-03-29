@@ -7,8 +7,14 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-800">
+    @php
+        $headerUser = null;
+        if (session()->has('app_user_id')) {
+            $headerUser = \App\Models\User::query()->find((int) session('app_user_id'));
+        }
+    @endphp
     <header class="sticky top-0 z-50 border-b border-emerald-100 bg-white/95 backdrop-blur">
-        <div class="mx-auto flex max-w-7xl items-center gap-3 px-6 py-4">
+        <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-6 py-4">
             <div class="flex items-center gap-3">
                 <button type="button"
                     class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50/70 text-emerald-700 transition hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
@@ -23,6 +29,11 @@
                     Finko
                 </a>
             </div>
+            @if ($headerUser)
+                <p class="text-sm font-medium text-slate-600">
+                    Hello, {{ \Illuminate\Support\Str::before($headerUser->name, ' ') ?: $headerUser->name }}!
+                </p>
+            @endif
         </div>
     </header>
 
