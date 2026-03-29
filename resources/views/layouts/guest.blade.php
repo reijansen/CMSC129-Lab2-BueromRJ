@@ -21,5 +21,15 @@
         @include('partials.flash-messages')
         @yield('content')
     </main>
+
+    <footer class="border-t border-slate-200 bg-white">
+        <div class="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-5 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+            <p>&copy; {{ now()->year }} Finko. Student Budget &amp; Finance Tracker.</p>
+            <div class="flex items-center gap-4">
+                <a href="{{ route('login') }}" class="hover:text-emerald-700">Login</a>
+                <a href="{{ route('register') }}" class="hover:text-emerald-700">Sign Up</a>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
