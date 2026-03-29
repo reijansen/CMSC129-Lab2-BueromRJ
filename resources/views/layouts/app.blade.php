@@ -36,7 +36,8 @@
                 <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500 lg:hidden" data-drawer-title>Navigation</p>
                 <nav class="space-y-1 text-sm">
                     <a href="{{ route('dashboard') }}"
-                        class="drawer-item {{ request()->routeIs('dashboard') ? 'bg-emerald-100 text-emerald-900' : 'text-slate-700 hover:bg-slate-100' }} flex items-center gap-3 rounded-lg px-3 py-2 font-medium">
+                        class="drawer-item drawer-tooltip-target {{ request()->routeIs('dashboard') ? 'bg-emerald-100 text-emerald-900' : 'text-slate-700 hover:bg-slate-100' }} flex items-center gap-3 rounded-lg px-3 py-2 font-medium"
+                        data-tooltip="Dashboard">
                         <svg xmlns="http://www.w3.org/2000/svg" class="drawer-icon h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -45,7 +46,8 @@
                         <span class="truncate lg:hidden" data-drawer-label>Dashboard</span>
                     </a>
                     <a href="{{ route('categories.index') }}"
-                        class="drawer-item {{ request()->routeIs('categories.*') ? 'bg-emerald-100 text-emerald-900' : 'text-slate-700 hover:bg-slate-100' }} flex items-center gap-3 rounded-lg px-3 py-2 font-medium">
+                        class="drawer-item drawer-tooltip-target {{ request()->routeIs('categories.*') ? 'bg-emerald-100 text-emerald-900' : 'text-slate-700 hover:bg-slate-100' }} flex items-center gap-3 rounded-lg px-3 py-2 font-medium"
+                        data-tooltip="Categories">
                         <svg xmlns="http://www.w3.org/2000/svg" class="drawer-icon h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -55,7 +57,8 @@
                         <span class="truncate lg:hidden" data-drawer-label>Categories</span>
                     </a>
                     <a href="{{ route('budgets.index') }}"
-                        class="drawer-item {{ request()->routeIs('budgets.*') ? 'bg-emerald-100 text-emerald-900' : 'text-slate-700 hover:bg-slate-100' }} flex items-center gap-3 rounded-lg px-3 py-2 font-medium">
+                        class="drawer-item drawer-tooltip-target {{ request()->routeIs('budgets.*') ? 'bg-emerald-100 text-emerald-900' : 'text-slate-700 hover:bg-slate-100' }} flex items-center gap-3 rounded-lg px-3 py-2 font-medium"
+                        data-tooltip="Budgets">
                         <svg xmlns="http://www.w3.org/2000/svg" class="drawer-icon h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -65,7 +68,8 @@
                         <span class="truncate lg:hidden" data-drawer-label>Budgets</span>
                     </a>
                     <a href="{{ route('transactions.index') }}"
-                        class="drawer-item {{ request()->routeIs('transactions.*') ? 'bg-emerald-100 text-emerald-900' : 'text-slate-700 hover:bg-slate-100' }} flex items-center gap-3 rounded-lg px-3 py-2 font-medium">
+                        class="drawer-item drawer-tooltip-target {{ request()->routeIs('transactions.*') ? 'bg-emerald-100 text-emerald-900' : 'text-slate-700 hover:bg-slate-100' }} flex items-center gap-3 rounded-lg px-3 py-2 font-medium"
+                        data-tooltip="Transactions">
                         <svg xmlns="http://www.w3.org/2000/svg" class="drawer-icon h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -77,7 +81,8 @@
 
                 <div class="mt-auto border-t border-slate-200 pt-3">
                     <a href="{{ route('profile.show') }}"
-                        class="drawer-item {{ request()->routeIs('profile.show') ? 'bg-emerald-100 text-emerald-900' : 'text-slate-700 hover:bg-slate-100' }} flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium">
+                        class="drawer-item drawer-tooltip-target {{ request()->routeIs('profile.show') ? 'bg-emerald-100 text-emerald-900' : 'text-slate-700 hover:bg-slate-100' }} flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium"
+                        data-tooltip="Profile">
                         <svg xmlns="http://www.w3.org/2000/svg" class="drawer-icon h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -89,7 +94,8 @@
                         <form action="{{ route('logout') }}" method="post" class="mt-1">
                             @csrf
                             <button type="submit"
-                                class="drawer-item flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100">
+                                class="drawer-item drawer-tooltip-target flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                                data-tooltip="Logout">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="drawer-icon h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round"

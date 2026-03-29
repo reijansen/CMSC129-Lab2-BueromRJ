@@ -73,6 +73,7 @@
     [data-drawer][data-collapsed='true'] .drawer-inner {
         padding-left: 0;
         padding-right: 0;
+        overflow: visible;
     }
 
     [data-drawer][data-collapsed='true'] .drawer-item {
@@ -84,5 +85,33 @@
         padding-left: 0;
         padding-right: 0;
         gap: 0;
+    }
+
+    [data-drawer][data-collapsed='true'] .drawer-tooltip-target {
+        position: relative;
+    }
+
+    [data-drawer][data-collapsed='true'] .drawer-tooltip-target::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: calc(100% + 0.5rem);
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0;
+        pointer-events: none;
+        white-space: nowrap;
+        z-index: 50;
+        border-radius: 0.5rem;
+        background: #0f172a;
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.3rem 0.5rem;
+        transition: opacity 120ms ease-in-out;
+    }
+
+    [data-drawer][data-collapsed='true'] .drawer-tooltip-target:hover::after,
+    [data-drawer][data-collapsed='true'] .drawer-tooltip-target:focus-visible::after {
+        opacity: 1;
     }
 }
