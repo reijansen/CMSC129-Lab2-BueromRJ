@@ -10,7 +10,7 @@
                 <p class="text-sm text-slate-500">Track all income and expense records.</p>
             </div>
             <div class="flex items-center gap-2">
-                <a href="{{ route('transactions.create') }}" class="btn-primary">New Transaction</a>
+                <button type="button" class="btn-primary" data-open-create-transaction-modal>New Transaction</button>
             </div>
         </div>
 
@@ -176,7 +176,7 @@
                             <td colspan="9" class="px-4 py-8 text-center">
                                 <p class="text-sm font-medium text-slate-700">No transactions recorded yet.</p>
                                 <p class="mt-1 text-xs text-slate-500">Add your first income or expense to populate this list.</p>
-                                <a href="{{ route('transactions.create') }}" class="mt-3 inline-flex btn-primary px-3 py-1.5 text-xs">Create Transaction</a>
+                                <button type="button" data-open-create-transaction-modal class="mt-3 inline-flex btn-primary px-3 py-1.5 text-xs">Create Transaction</button>
                             </td>
                         </tr>
                     @endforelse
@@ -186,6 +186,113 @@
 
         <div class="mt-4">
             {{ $transactions->links() }}
+        </div>
+    </div>
+
+    <div class="fixed inset-0 z-50 hidden items-center justify-center p-4" data-create-transaction-modal>
+        <div class="absolute inset-0 bg-slate-900/45" data-close-create-transaction-modal></div>
+        <div class="relative flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+            <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Create Transaction</h2>
+                    <p class="text-sm text-slate-500">Add a new income or expense record.</p>
+                </div>
+                <button type="button"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                    data-close-create-transaction-modal aria-label="Close create transaction modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <form method="post" action="{{ route('transactions.store') }}" enctype="multipart/form-data"
+                class="flex-1 space-y-5 overflow-y-auto px-5 py-4" data-create-transaction-form>
+                @csrf
+
+                <div class="space-y-5">
+                    <div>
+                        <label for="create_category_id" class="label-control">Category</label>
+                        <select id="create_category_id" name="category_id" class="input-control" required data-transaction-category>
+                            <option value="">Select a category</option>
+                            @foreach ($categories as $category)
+                                <option value="{{ $category->id }}"
+                                    data-category-type="{{ $category->type }}"
+                                    @selected(old('category_id') == (string) $category->id)>
+                                    {{ $category->name }} ({{ ucfirst($category->type) }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="hidden" data-budget-wrapper>
+                        <label for="create_budget_id" class="label-control">Budget <span class="text-xs font-normal text-slate-500">(required for expense)</span></label>
+                        <select id="create_budget_id" name="budget_id" class="input-control" data-transaction-budget>
+                            <option value="">Select a budget</option>
+                            @foreach ($budgets as $budget)
+                                <option value="{{ $budget->id }}" @selected(old('budget_id') == (string) $budget->id)>
+                                    {{ $budget->title }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-slate-500">Budget is required for expense transactions.</p>
+                    </div>
+
+                    <div>
+                        <label for="create_title" class="label-control">Title</label>
+                        <input id="create_title" name="title" type="text" value="{{ old('title') }}" class="input-control" required>
+                    </div>
+
+                    <div>
+                        <label for="create_amount" class="label-control">Amount</label>
+                        <input id="create_amount" name="amount" type="number" step="0.01" min="0" value="{{ old('amount') }}" class="input-control" required>
+                    </div>
+
+                    <div>
+                        <label for="create_type" class="label-control">Type</label>
+                        <select id="create_type" name="type" class="input-control" required>
+                            <option value="income" @selected(old('type', 'income') === 'income')>Income</option>
+                            <option value="expense" @selected(old('type') === 'expense')>Expense</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="create_transaction_date" class="label-control">Transaction Date</label>
+                        <input id="create_transaction_date" name="transaction_date" type="date" value="{{ old('transaction_date') }}" class="input-control" required>
+                    </div>
+
+                    <div>
+                        <label for="create_payment_method" class="label-control">Payment Method</label>
+                        <input id="create_payment_method" name="payment_method" type="text" value="{{ old('payment_method') }}" class="input-control">
+                    </div>
+
+                    <div>
+                        <label for="create_notes" class="label-control">Notes</label>
+                        <textarea id="create_notes" name="notes" rows="4" class="input-control">{{ old('notes') }}</textarea>
+                    </div>
+
+                    <div>
+                        <label for="create_attachment" class="label-control">Attachment (Optional)</label>
+                        <input
+                            id="create_attachment"
+                            name="attachment"
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.pdf"
+                            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-emerald-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-emerald-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                        <p class="mt-1 text-xs text-slate-500">Allowed: JPG, JPEG, PNG, PDF. Max size: 4 MB.</p>
+                        @error('attachment')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="sticky bottom-0 flex items-center justify-end gap-2 border-t border-slate-200 bg-white pt-3">
+                    <button type="button" class="btn-secondary" data-close-create-transaction-modal>Cancel</button>
+                    <button type="submit" class="btn-primary">Save Transaction</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -435,6 +542,9 @@
 
     <script>
         (() => {
+            const createModal = document.querySelector('[data-create-transaction-modal]');
+            const createForm = createModal?.querySelector('[data-create-transaction-form]');
+
             const openModal = (modal) => {
                 if (!modal) return;
                 modal.classList.remove('hidden');
@@ -446,8 +556,45 @@
                 if (!modal) return;
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
-                document.body.classList.remove('overflow-hidden');
+                const hasAnyOpenModal = document.querySelector('[data-create-transaction-modal].flex, [data-view-modal].flex, [data-edit-modal].flex');
+                if (!hasAnyOpenModal) {
+                    document.body.classList.remove('overflow-hidden');
+                }
             };
+
+            const setCreateValue = (name, value = '') => {
+                const el = createForm?.querySelector(`[name="${name}"]`);
+                if (el) {
+                    el.value = value;
+                }
+            };
+
+            const resetCreateForm = () => {
+                if (!createForm) return;
+                setCreateValue('category_id', '');
+                setCreateValue('budget_id', '');
+                setCreateValue('title', '');
+                setCreateValue('amount', '');
+                setCreateValue('type', 'income');
+                setCreateValue('transaction_date', '');
+                setCreateValue('payment_method', '');
+                setCreateValue('notes', '');
+                setCreateValue('attachment', '');
+
+                const categorySelect = createForm.querySelector('[data-transaction-category]');
+                categorySelect?.dispatchEvent(new Event('change'));
+            };
+
+            document.querySelectorAll('[data-open-create-transaction-modal]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    resetCreateForm();
+                    openModal(createModal);
+                });
+            });
+
+            createModal?.querySelectorAll('[data-close-create-transaction-modal]').forEach((button) => {
+                button.addEventListener('click', () => closeModal(createModal));
+            });
 
             document.querySelectorAll('[data-open-view-modal]').forEach((button) => {
                 button.addEventListener('click', () => {
@@ -494,8 +641,29 @@
                 syncBudgetRequirement();
             });
 
+            if (createForm) {
+                const categorySelect = createForm.querySelector('[data-transaction-category]');
+                const budgetWrapper = createForm.querySelector('[data-budget-wrapper]');
+                const budgetSelect = createForm.querySelector('[data-transaction-budget]');
+
+                if (categorySelect && budgetWrapper && budgetSelect) {
+                    const syncCreateBudgetRequirement = () => {
+                        const selected = categorySelect.options[categorySelect.selectedIndex];
+                        const categoryType = selected?.dataset?.categoryType || '';
+                        const needsBudget = categoryType === 'expense' || categoryType === 'both';
+                        budgetWrapper.classList.toggle('hidden', !needsBudget);
+                        budgetSelect.required = needsBudget;
+                    };
+
+                    categorySelect.addEventListener('change', syncCreateBudgetRequirement);
+                    syncCreateBudgetRequirement();
+                }
+            }
+
             @if ($errors->any() && old('edit_transaction_id'))
                 openModal(document.querySelector('[data-edit-modal="{{ old('edit_transaction_id') }}"]'));
+            @elseif ($errors->any() && (old('title') !== null || old('amount') !== null || old('transaction_date') !== null || old('category_id') !== null || old('budget_id') !== null))
+                openModal(createModal);
             @endif
         })();
     </script>
