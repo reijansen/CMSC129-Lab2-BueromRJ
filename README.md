@@ -75,6 +75,22 @@ Finko is a Laravel-based student budget and finance tracker. It helps users mana
    php artisan serve
    ```
 
+## AI Setup (Ollama)
+
+This project is prepared for CMSC 129 Lab 3 AI integration using a backend-only Ollama connection (no direct AI calls from the frontend).
+
+1. Install Ollama: https://ollama.com
+2. Start Ollama (it runs on `http://127.0.0.1:11434` by default).
+3. Pull the default model:
+   ```bash
+   ollama pull qwen2.5:3b
+   ```
+4. Configure `.env` (do not commit it):
+   - `AI_PROVIDER=ollama`
+   - `OLLAMA_BASE_URL=http://127.0.0.1:11434`
+   - `OLLAMA_MODEL=qwen2.5:3b`
+   - `AI_REQUEST_TIMEOUT_SECONDS=30`
+
 ## Usage Instructions
 
 1. Open the app in your browser (default: `http://127.0.0.1:8000`).
