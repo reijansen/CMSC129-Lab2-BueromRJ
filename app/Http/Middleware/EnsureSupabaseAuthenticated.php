@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Services\SupabaseAuthService;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -22,6 +23,12 @@ class EnsureSupabaseAuthenticated
         $appUserId = (int) $request->session()->get('app_user_id', 0);
 
         if ($accessToken === '' || $refreshToken === '' || $appUserId === 0) {
+            if ($this->expectsJson($request)) {
+                return response()->json([
+                    'error' => 'Unauthenticated.',
+                ], 401);
+            }
+
             return redirect()->route('login');
         }
 
@@ -31,6 +38,12 @@ class EnsureSupabaseAuthenticated
             } catch (Throwable) {
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
+
+                if ($this->expectsJson($request)) {
+                    return response()->json([
+                        'error' => 'Your session expired. Please log in again.',
+                    ], 401);
+                }
 
                 return redirect()->route('login')->withErrors([
                     'email' => 'Your session expired. Please log in again.',
@@ -48,5 +61,9 @@ class EnsureSupabaseAuthenticated
 
         return $next($request);
     }
-}
 
+    private function expectsJson(Request $request): bool
+    {
+        return $request->expectsJson() || $request->is('api/*');
+    }
+}
