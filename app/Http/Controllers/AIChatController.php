@@ -72,6 +72,7 @@ class AIChatController extends Controller
     {
         $request->session()->forget(self::SESSION_HISTORY_KEY);
         $request->session()->forget(AIContextState::SESSION_KEY);
+        $request->session()->forget('ai_assistant_pending_action');
 
         return response()->json([
             'reply' => 'Chat history cleared.',

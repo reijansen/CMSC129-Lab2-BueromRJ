@@ -18,9 +18,21 @@
         <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
             <div class="min-w-0">
                 <p class="truncate text-sm font-semibold text-slate-900">Finko AI</p>
-                <p class="truncate text-xs text-slate-500">Ask about budgets, transactions, and categories</p>
+                <p class="truncate text-xs text-slate-500" data-ai-chat-subtitle>Ask about budgets, transactions, and categories</p>
             </div>
             <div class="flex items-center gap-2">
+                <div class="hidden items-center rounded-xl border border-slate-200 bg-white p-1 text-xs font-semibold text-slate-700 sm:flex" data-ai-chat-mode>
+                    <button type="button"
+                        class="rounded-lg px-2.5 py-1.5 transition"
+                        data-ai-chat-mode-btn="chatbot">
+                        Chatbot
+                    </button>
+                    <button type="button"
+                        class="rounded-lg px-2.5 py-1.5 transition"
+                        data-ai-chat-mode-btn="assistant">
+                        Assistant
+                    </button>
+                </div>
                 <button type="button"
                     class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
                     data-ai-chat-reset>
@@ -57,4 +69,3 @@
         </form>
     </div>
 </div>
-

@@ -82,12 +82,47 @@ export const setupAIChatWidget = () => {
     const messagesEl = root.querySelector('[data-ai-chat-messages]');
     const errorEl = root.querySelector('[data-ai-chat-error]');
     const loadingEl = root.querySelector('[data-ai-chat-loading]');
+    const subtitleEl = root.querySelector('[data-ai-chat-subtitle]');
+    const modeRoot = root.querySelector('[data-ai-chat-mode]');
+    const modeButtons = root.querySelectorAll('[data-ai-chat-mode-btn]');
 
     if (!toggle || !panel || !form || !input || !messagesEl) return;
 
     let isOpen = false;
     let lastHistory = [];
     let pendingActionsContainer = null;
+    let mode = 'assistant';
+
+    const MODE_KEY = 'finko-ai-mode';
+
+    const getModeEndpoint = () => (mode === 'chatbot' ? '/api/ai/chat' : '/api/ai/assistant');
+    const getResetEndpoint = () => '/api/ai/chat/reset';
+
+    const applyModeUi = () => {
+        if (subtitleEl) {
+            subtitleEl.textContent =
+                mode === 'chatbot'
+                    ? 'Inquiry chatbot (read-only)'
+                    : 'CRUD assistant (create/update/delete + confirm)';
+        }
+
+        modeButtons.forEach((btn) => {
+            const btnMode = btn.getAttribute('data-ai-chat-mode-btn');
+            const isActive = btnMode === mode;
+            btn.classList.toggle('bg-emerald-600', isActive);
+            btn.classList.toggle('text-white', isActive);
+            btn.classList.toggle('shadow-sm', isActive);
+            btn.classList.toggle('bg-white', !isActive);
+            btn.classList.toggle('text-slate-700', !isActive);
+        });
+    };
+
+    const setMode = (next) => {
+        mode = next === 'chatbot' ? 'chatbot' : 'assistant';
+        localStorage.setItem(MODE_KEY, mode);
+        clearPendingControls();
+        applyModeUi();
+    };
 
     const showError = (message) => {
         if (!errorEl) return;
@@ -118,11 +153,16 @@ export const setupAIChatWidget = () => {
     toggle.addEventListener('click', () => (isOpen ? closePanel() : openPanel()));
     close?.addEventListener('click', closePanel);
 
+    modeButtons.forEach((btn) => {
+        btn.addEventListener('click', () => setMode(btn.getAttribute('data-ai-chat-mode-btn')));
+    });
+
     reset?.addEventListener('click', async () => {
         clearError();
+        clearPendingControls();
         setLoading(true);
         try {
-            const response = await fetch('/api/ai/chat/reset', {
+            const response = await fetch(getResetEndpoint(), {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
@@ -231,7 +271,7 @@ export const setupAIChatWidget = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('/api/ai/assistant', {
+            const response = await fetch(getModeEndpoint(), {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
@@ -255,7 +295,7 @@ export const setupAIChatWidget = () => {
 
             renderHistory(messagesEl, lastHistory);
 
-            if (data?.mode === 'propose') {
+            if (mode === 'assistant' && data?.mode === 'propose') {
                 renderPendingControls();
             }
 
@@ -266,4 +306,8 @@ export const setupAIChatWidget = () => {
             setLoading(false);
         }
     });
+
+    const storedMode = localStorage.getItem(MODE_KEY);
+    setMode(storedMode === 'chatbot' ? 'chatbot' : 'assistant');
+    setVisible(modeRoot, true);
 };
