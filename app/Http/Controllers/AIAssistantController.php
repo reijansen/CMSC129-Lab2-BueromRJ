@@ -63,6 +63,82 @@ class AIAssistantController extends Controller
         ]);
     }
 
+    public function confirm(Request $request): JsonResponse
+    {
+        $userId = (int) ($request->attributes->get('app_user_id') ?? 0);
+        if ($userId <= 0) {
+            return response()->json([
+                'error' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $history = $this->loadHistory($request);
+        $history[] = [
+            'role' => 'user',
+            'content' => '[Confirm]',
+        ];
+        $history = $this->trimHistory($history);
+
+        try {
+            $result = $this->assistantService->confirmPending($userId, $request);
+        } catch (RuntimeException) {
+            return response()->json([
+                'error' => 'AI service is currently unavailable. Please try again.',
+            ], 502);
+        }
+
+        $reply = trim((string) ($result['reply'] ?? ''));
+        if ($reply === '') {
+            $reply = 'No pending action to confirm.';
+        }
+
+        $history[] = [
+            'role' => 'assistant',
+            'content' => $reply,
+        ];
+        $history = $this->trimHistory($history);
+        $request->session()->put(self::SESSION_HISTORY_KEY, $history);
+
+        return response()->json([
+            ...$result,
+            'reply' => $reply,
+            'history' => $history,
+        ]);
+    }
+
+    public function cancel(Request $request): JsonResponse
+    {
+        $userId = (int) ($request->attributes->get('app_user_id') ?? 0);
+        if ($userId <= 0) {
+            return response()->json([
+                'error' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $history = $this->loadHistory($request);
+        $history[] = [
+            'role' => 'user',
+            'content' => '[Cancel]',
+        ];
+        $history = $this->trimHistory($history);
+
+        $result = $this->assistantService->cancelPending($request);
+
+        $reply = trim((string) ($result['reply'] ?? 'Cancelled.'));
+        $history[] = [
+            'role' => 'assistant',
+            'content' => $reply,
+        ];
+        $history = $this->trimHistory($history);
+        $request->session()->put(self::SESSION_HISTORY_KEY, $history);
+
+        return response()->json([
+            ...$result,
+            'reply' => $reply,
+            'history' => $history,
+        ]);
+    }
+
     /**
      * @return array<int, array{role: string, content: string}>
      */
@@ -139,4 +215,3 @@ class AIAssistantController extends Controller
         ]);
     }
 }
-

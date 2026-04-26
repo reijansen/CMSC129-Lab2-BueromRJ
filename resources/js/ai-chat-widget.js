@@ -84,6 +84,7 @@ export const setupAIChatWidget = () => {
 
     let isOpen = false;
     let lastHistory = [];
+    let pendingActionsContainer = null;
 
     const showError = (message) => {
         if (!errorEl) return;
@@ -142,9 +143,74 @@ export const setupAIChatWidget = () => {
         }
     });
 
+    const clearPendingControls = () => {
+        pendingActionsContainer?.remove();
+        pendingActionsContainer = null;
+    };
+
+    const renderPendingControls = () => {
+        clearPendingControls();
+
+        const container = document.createElement('div');
+        container.className = 'flex items-center justify-end gap-2';
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.type = 'button';
+        confirmBtn.className =
+            'rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60';
+        confirmBtn.textContent = 'Confirm';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className =
+            'rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60';
+        cancelBtn.textContent = 'Cancel';
+
+        container.appendChild(cancelBtn);
+        container.appendChild(confirmBtn);
+        messagesEl.appendChild(container);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        pendingActionsContainer = container;
+
+        const runPending = async (endpoint) => {
+            clearError();
+            setLoading(true);
+            confirmBtn.disabled = true;
+            cancelBtn.disabled = true;
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                    },
+                    body: JSON.stringify({}),
+                });
+
+                if (!response.ok) {
+                    showError(await parseErrorMessage(response));
+                    return;
+                }
+
+                const data = await response.json();
+                lastHistory = Array.isArray(data?.history) ? data.history : lastHistory;
+                renderHistory(messagesEl, lastHistory);
+                clearPendingControls();
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        confirmBtn.addEventListener('click', () => runPending('/api/ai/assistant/confirm'));
+        cancelBtn.addEventListener('click', () => runPending('/api/ai/assistant/cancel'));
+    };
+
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         clearError();
+        clearPendingControls();
 
         const message = input.value.trim();
         if (!message) {
@@ -158,7 +224,7 @@ export const setupAIChatWidget = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('/api/ai/chat', {
+            const response = await fetch('/api/ai/assistant', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
@@ -181,9 +247,12 @@ export const setupAIChatWidget = () => {
             }
 
             renderHistory(messagesEl, lastHistory);
+
+            if (data?.mode === 'propose') {
+                renderPendingControls();
+            }
         } finally {
             setLoading(false);
         }
     });
 };
-

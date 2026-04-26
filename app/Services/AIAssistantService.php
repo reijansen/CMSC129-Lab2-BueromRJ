@@ -64,6 +64,117 @@ class AIAssistantService
     }
 
     /**
+     * Execute a pending update/delete action stored in session.
+     *
+     * @return array<string, mixed>
+     */
+    public function confirmPending(int $userId, Request $request): array
+    {
+        $pending = $request->session()->get(self::SESSION_PENDING_ACTION_KEY);
+        if (! is_array($pending)) {
+            return [
+                'mode' => 'reply',
+                'reply' => 'No pending action to confirm.',
+            ];
+        }
+
+        $action = (string) ($pending['action'] ?? '');
+        $resource = (string) ($pending['resource'] ?? '');
+        $selector = $pending['selector'] ?? null;
+        $data = $pending['data'] ?? null;
+
+        if (! in_array($action, ['update', 'delete'], true) || ! in_array($resource, ['category', 'budget', 'transaction'], true) || ! is_array($selector)) {
+            $request->session()->forget(self::SESSION_PENDING_ACTION_KEY);
+
+            return [
+                'mode' => 'reply',
+                'reply' => 'Pending action was invalid and has been cleared.',
+            ];
+        }
+
+        $record = $this->resolveSingleRecord($userId, $resource, $selector);
+        if (! $record) {
+            $request->session()->forget(self::SESSION_PENDING_ACTION_KEY);
+
+            return [
+                'mode' => 'reply',
+                'reply' => 'That record no longer exists. Pending action cleared.',
+            ];
+        }
+
+        if ($action === 'delete') {
+            $id = (int) $record->id;
+            $label = $resource === 'category' ? (string) $record->name : (string) $record->title;
+            $record->delete();
+            $request->session()->forget(self::SESSION_PENDING_ACTION_KEY);
+
+            return [
+                'mode' => 'reply',
+                'reply' => "Deleted {$resource} #{$id}: {$label}.",
+                'executed' => [
+                    'action' => 'delete',
+                    'resource' => $resource,
+                    'id' => $id,
+                ],
+            ];
+        }
+
+        if (! is_array($data)) {
+            return [
+                'mode' => 'reply',
+                'reply' => 'No update data found for the pending action.',
+            ];
+        }
+
+        $data = $this->filterAllowedData($resource, $data);
+
+        $before = $this->previewFor($resource, $record, null)['before'] ?? [];
+
+        $validation = $this->validateUpdatePayload($userId, $resource, $data);
+        if ($validation['ok'] === false) {
+            return [
+                'mode' => 'reply',
+                'reply' => (string) ($validation['message'] ?? 'Update validation failed.'),
+            ];
+        }
+
+        $record->update($validation['data']);
+        $request->session()->forget(self::SESSION_PENDING_ACTION_KEY);
+
+        $after = $this->previewFor($resource, $record->fresh(), null)['before'] ?? [];
+
+        $id = (int) $record->id;
+        $label = $resource === 'category' ? (string) $record->name : (string) $record->title;
+
+        return [
+            'mode' => 'reply',
+            'reply' => "Updated {$resource} #{$id}: {$label}. Confirmed changes applied.",
+            'executed' => [
+                'action' => 'update',
+                'resource' => $resource,
+                'id' => $id,
+                'before' => $before,
+                'after' => $after,
+            ],
+        ];
+    }
+
+    /**
+     * Cancel and clear the pending action.
+     *
+     * @return array<string, mixed>
+     */
+    public function cancelPending(Request $request): array
+    {
+        $request->session()->forget(self::SESSION_PENDING_ACTION_KEY);
+
+        return [
+            'mode' => 'reply',
+            'reply' => 'Cancelled.',
+        ];
+    }
+
+    /**
      * @param  array<int, array{role: string, content: string}>  $history
      * @return array<string, mixed>
      */
@@ -291,6 +402,141 @@ class AIAssistantService
             'proposed_action' => $proposedAction,
             'preview' => $preview,
         ];
+    }
+
+    private function resolveSingleRecord(int $userId, string $resource, array $selector)
+    {
+        if (isset($selector['id'])) {
+            $id = (int) $selector['id'];
+            if ($id <= 0) {
+                return null;
+            }
+
+            return $this->findById($userId, $resource, $id);
+        }
+
+        if ($resource === 'category' && isset($selector['name']) && is_string($selector['name'])) {
+            $name = trim($selector['name']);
+
+            return Category::query()
+                ->where('user_id', $userId)
+                ->where('name', 'ilike', $name)
+                ->first();
+        }
+
+        if (in_array($resource, ['budget', 'transaction'], true) && isset($selector['title']) && is_string($selector['title'])) {
+            $title = trim($selector['title']);
+            $model = $resource === 'budget' ? Budget::query() : Transaction::query();
+
+            return $model
+                ->where('user_id', $userId)
+                ->where('title', 'ilike', $title)
+                ->first();
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{ok: bool, message?: string, data?: array<string, mixed>}
+     */
+    private function validateUpdatePayload(int $userId, string $resource, array $data): array
+    {
+        if ($data === []) {
+            return [
+                'ok' => false,
+                'message' => 'No fields provided to update.',
+            ];
+        }
+
+        if ($resource === 'category') {
+            $validator = Validator::make($data, [
+                'name' => ['sometimes', 'required', 'string', 'max:255'],
+                'type' => ['sometimes', 'required', 'in:expense,income,both'],
+                'color' => ['sometimes', 'nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+                'description' => ['sometimes', 'nullable', 'string'],
+            ]);
+
+            if ($validator->fails()) {
+                return ['ok' => false, 'message' => 'Update failed: ' . $validator->errors()->first()];
+            }
+
+            return ['ok' => true, 'data' => $validator->validated()];
+        }
+
+        if ($resource === 'budget') {
+            $validator = Validator::make($data, [
+                'category_id' => ['sometimes', 'required', 'integer'],
+                'title' => ['sometimes', 'required', 'string', 'max:255'],
+                'allocated_amount' => ['sometimes', 'required', 'numeric', 'min:0'],
+                'period_start' => ['sometimes', 'required', 'date'],
+                'period_end' => ['sometimes', 'required', 'date'],
+                'status' => ['sometimes', 'required', 'in:active,completed,exceeded,archived'],
+                'notes' => ['sometimes', 'nullable', 'string'],
+            ]);
+
+            if ($validator->fails()) {
+                return ['ok' => false, 'message' => 'Update failed: ' . $validator->errors()->first()];
+            }
+
+            $validated = $validator->validated();
+
+            if (isset($validated['category_id'])) {
+                $exists = Category::query()
+                    ->where('user_id', $userId)
+                    ->where('id', (int) $validated['category_id'])
+                    ->exists();
+                if (! $exists) {
+                    return ['ok' => false, 'message' => 'Update failed: category does not exist.'];
+                }
+            }
+
+            return ['ok' => true, 'data' => $validated];
+        }
+
+        if ($resource === 'transaction') {
+            $validator = Validator::make($data, [
+                'budget_id' => ['sometimes', 'nullable', 'integer'],
+                'category_id' => ['sometimes', 'required', 'integer'],
+                'title' => ['sometimes', 'required', 'string', 'max:255'],
+                'amount' => ['sometimes', 'required', 'numeric', 'min:0'],
+                'type' => ['sometimes', 'required', 'in:income,expense'],
+                'transaction_date' => ['sometimes', 'required', 'date'],
+                'payment_method' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'notes' => ['sometimes', 'nullable', 'string'],
+            ]);
+
+            if ($validator->fails()) {
+                return ['ok' => false, 'message' => 'Update failed: ' . $validator->errors()->first()];
+            }
+
+            $validated = $validator->validated();
+
+            if (isset($validated['category_id'])) {
+                $exists = Category::query()
+                    ->where('user_id', $userId)
+                    ->where('id', (int) $validated['category_id'])
+                    ->exists();
+                if (! $exists) {
+                    return ['ok' => false, 'message' => 'Update failed: category does not exist.'];
+                }
+            }
+
+            if (array_key_exists('budget_id', $validated) && $validated['budget_id']) {
+                $exists = Budget::query()
+                    ->where('user_id', $userId)
+                    ->where('id', (int) $validated['budget_id'])
+                    ->exists();
+                if (! $exists) {
+                    return ['ok' => false, 'message' => 'Update failed: budget does not exist.'];
+                }
+            }
+
+            return ['ok' => true, 'data' => $validated];
+        }
+
+        return ['ok' => false, 'message' => 'Unsupported resource.'];
     }
 
     private function previewFor(string $resource, $record, ?array $data): array

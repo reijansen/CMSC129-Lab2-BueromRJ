@@ -8,4 +8,6 @@ Route::middleware(['web', 'supabase.auth'])->group(function (): void {
     Route::post('/ai/chat', [AIChatController::class, 'send']);
     Route::post('/ai/chat/reset', [AIChatController::class, 'reset']);
     Route::post('/ai/assistant', [AIAssistantController::class, 'send']);
+    Route::post('/ai/assistant/confirm', [AIAssistantController::class, 'confirm']);
+    Route::post('/ai/assistant/cancel', [AIAssistantController::class, 'cancel']);
 });
