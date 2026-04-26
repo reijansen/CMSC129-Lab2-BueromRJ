@@ -1,4 +1,5 @@
 import './bootstrap';
+import { setupAIChatWidget } from './ai-chat-widget';
 
 const setupThemeToggle = () => {
     const key = 'finko-theme';
@@ -234,6 +235,7 @@ if (document.readyState === 'loading') {
         setupConfirmationModal();
         setupRequiredFieldMarkers();
         setupPasswordToggles();
+        setupAIChatWidget();
     });
 } else {
     setupThemeToggle();
@@ -241,4 +243,5 @@ if (document.readyState === 'loading') {
     setupConfirmationModal();
     setupRequiredFieldMarkers();
     setupPasswordToggles();
+    setupAIChatWidget();
 }

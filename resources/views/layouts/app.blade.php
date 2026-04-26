@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Finko')</title>
     <script>
         (() => {
@@ -159,6 +160,8 @@
             @yield('content')
         </main>
     </div>
+
+    @include('partials.ai-chat-widget')
 
     <div class="fixed inset-0 z-[60] hidden items-center justify-center p-4" data-confirm-modal>
         <div class="absolute inset-0 bg-slate-900/45" data-confirm-cancel></div>
