@@ -103,7 +103,7 @@ Finko is a Laravel-based student budget and finance tracker. It helps users mana
 - [Category Controller](app/Http/Controllers/CategoryController.php)
 - [Laravel Markdown Guide](https://docs.github.com/en/get-started/writing-on-github)
 
-## Author / Contributors
+## Author / Contributor
 
-- Primary Developer: `BueromRJ`
+- Developer: `Rei Jansen Bueroom`
 - Course Project: CMSC 129 (Software Engineering II)

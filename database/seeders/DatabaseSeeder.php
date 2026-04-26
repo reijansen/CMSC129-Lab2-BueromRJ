@@ -6,31 +6,65 @@ use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\SupabaseAuthService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
+
+    public function __construct(
+        private readonly SupabaseAuthService $supabaseAuthService
+    ) {}
 
     /**
      * Seed the application's database.
      */
     public function run(): void
     {
-        $users = collect([
+        // Delete existing demo users to refresh data
+        User::query()->whereIn('email', ['demo1@finko.test', 'demo2@finko.test'])->forceDelete();
+
+        $demoUsers = [
             [
                 'name' => 'Demo Student One',
                 'email' => 'demo1@finko.test',
-                'password' => Hash::make('password123'),
+                'password' => 'password123',
             ],
             [
                 'name' => 'Demo Student Two',
                 'email' => 'demo2@finko.test',
-                'password' => Hash::make('password123'),
+                'password' => 'password123',
             ],
-        ])->map(fn (array $attributes) => User::query()->create($attributes));
+        ];
+
+        $users = collect($demoUsers)->map(function (array $data) {
+            // Try to create in Supabase first
+            try {
+                $response = $this->supabaseAuthService->signUp($data['email'], $data['password']);
+                $supabaseId = $response['user']['id'] ?? null;
+            } catch (RuntimeException $e) {
+                // If user already exists in Supabase, try to get the ID by signing in
+                try {
+                    $response = $this->supabaseAuthService->signInWithPassword($data['email'], $data['password']);
+                    $supabaseId = $response['user']['id'] ?? null;
+                } catch (RuntimeException $ex) {
+                    echo "Warning: Could not create or authenticate {$data['email']} in Supabase: {$ex->getMessage()}\n";
+                    $supabaseId = null;
+                }
+            }
+
+            // Create local user record
+            return User::create([
+                'supabase_user_id' => $supabaseId,
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+            ]);
+        });
 
         $users->each(fn (User $user) => $this->seedFinanceDataForUser($user));
     }
@@ -46,10 +80,10 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Allowance', 'type' => 'income', 'color' => '#10b981'],
             ['name' => 'Part-time Job', 'type' => 'income', 'color' => '#14b8a6'],
             ['name' => 'Savings', 'type' => 'both', 'color' => '#84cc16'],
-        ])->shuffle()->take(fake()->numberBetween(5, 8))->values();
+        ])->shuffle()->take(6)->values();
 
         $categories = $categoryBlueprints->map(function (array $categoryData) use ($user) {
-            return Category::factory()->create([
+            return Category::create([
                 'user_id' => $user->id,
                 'name' => $categoryData['name'],
                 'type' => $categoryData['type'],
@@ -64,20 +98,20 @@ class DatabaseSeeder extends Seeder
         }
 
         $budgets = collect();
-        $budgetCount = fake()->numberBetween(8, 15);
+        $budgetCount = 10;
 
         for ($index = 0; $index < $budgetCount; $index++) {
             $category = $budgetCategories->random();
             $periodStart = fake()->dateTimeBetween('-3 months', '-1 week');
 
-            $budgets->push(Budget::factory()->create([
+            $budgets->push(Budget::create([
                 'user_id' => $user->id,
                 'category_id' => $category->id,
-                'title' => $category->name . ' Budget ' . fake()->monthName(),
+                'title' => $category->name . ' Budget',
                 'allocated_amount' => fake()->randomFloat(2, 800, 10000),
                 'period_start' => $periodStart,
                 'period_end' => (clone $periodStart)->modify('+30 days'),
-                'status' => fake()->randomElement(['active', 'active', 'completed', 'exceeded', 'archived']),
+                'status' => fake()->randomElement(['active', 'completed']),
                 'notes' => fake()->optional()->sentence(),
             ]));
         }
@@ -88,17 +122,18 @@ class DatabaseSeeder extends Seeder
             for ($i = 0; $i < $transactionCount; $i++) {
                 $transactionType = fake()->randomElement(['expense', 'expense', 'income']);
                 $category = $this->pickCategoryForType($categories, $transactionType, $budget->category_id);
-                $transactions->push($this->createTransactionForUser($user, $budgets, $category, $transactionType));
+                $transactions->push($this->createTransactionForUser($user, $budget, $category, $transactionType));
             }
         }
 
-        $targetTransactionCount = fake()->numberBetween(20, 40);
+        $targetTransactionCount = 25;
         $remaining = max(0, $targetTransactionCount - $transactions->count());
 
         for ($index = 0; $index < $remaining; $index++) {
             $transactionType = fake()->randomElement(['expense', 'expense', 'expense', 'income']);
             $category = $this->pickCategoryForType($categories, $transactionType);
-            $transactions->push($this->createTransactionForUser($user, $budgets, $category, $transactionType));
+            $budget = $budgets->random();
+            $transactions->push($this->createTransactionForUser($user, $budget, $category, $transactionType));
         }
     }
 
@@ -119,11 +154,8 @@ class DatabaseSeeder extends Seeder
         return $matched->random();
     }
 
-    private function createTransactionForUser(User $user, $budgets, Category $category, string $type): Transaction
+    private function createTransactionForUser(User $user, Budget $budget, Category $category, string $type): Transaction
     {
-        $budgetForCategory = $budgets->firstWhere('category_id', $category->id);
-        $budget = $budgetForCategory ?: $budgets->random();
-
         $expenseTitles = [
             'Lunch at Campus',
             'Jeepney Fare',
@@ -141,7 +173,7 @@ class DatabaseSeeder extends Seeder
             'Cash Gift',
         ];
 
-        return Transaction::factory()->create([
+        return Transaction::create([
             'user_id' => $user->id,
             'budget_id' => $budget->id,
             'category_id' => $category->id,
@@ -157,3 +189,4 @@ class DatabaseSeeder extends Seeder
         ]);
     }
 }
+
