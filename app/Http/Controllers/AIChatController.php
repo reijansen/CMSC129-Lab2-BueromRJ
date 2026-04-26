@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\AIService;
+use App\Services\AIInquiryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -13,7 +13,7 @@ class AIChatController extends Controller
     private const MAX_MESSAGES = 10;
 
     public function __construct(
-        private readonly AIService $aiService
+        private readonly AIInquiryService $aiInquiryService
     ) {}
 
     public function send(Request $request): JsonResponse
@@ -21,6 +21,13 @@ class AIChatController extends Controller
         $validated = $request->validate([
             'message' => ['required', 'string', 'max:2000'],
         ]);
+
+        $userId = (int) ($request->attributes->get('app_user_id') ?? 0);
+        if ($userId <= 0) {
+            return response()->json([
+                'error' => 'Unauthenticated.',
+            ], 401);
+        }
 
         $history = $this->loadHistory($request);
         $history[] = [
@@ -31,14 +38,14 @@ class AIChatController extends Controller
         $history = $this->trimHistory($history);
 
         try {
-            $result = $this->aiService->chat($history);
-        } catch (RuntimeException $e) {
+            $reply = $this->aiInquiryService->reply($userId, $validated['message'], $history);
+        } catch (RuntimeException) {
             return response()->json([
                 'error' => 'AI service is currently unavailable. Please try again.',
             ], 502);
         }
 
-        $reply = trim((string) ($result['content'] ?? ''));
+        $reply = trim((string) $reply);
         if ($reply === '') {
             $reply = $this->fallbackReply();
         }
@@ -140,15 +147,12 @@ class AIChatController extends Controller
         return implode("\n", [
             'You are Finko AI Chatbot, an inquiry-only assistant for a student finance tracker app.',
             'You must NOT perform CRUD actions (create/update/delete). Only answer questions and ask clarifying questions.',
-            'Do not invent numbers or claim to have queried the database.',
-            'If a user asks about budgets, transactions, or categories and you cannot access data yet, reply:',
-            '"I can answer that once the data tools are wired (Phase 3). For now, tell me if you mean budgets, transactions, or categories, and what date range (if relevant)."',
+            'If a user asks to create/update/delete, instruct them that actions are not available yet.',
         ]);
     }
 
     private function fallbackReply(): string
     {
-        return 'I can answer that once the data tools are wired (Phase 3). For now, tell me if you mean budgets, transactions, or categories, and what date range (if relevant).';
+        return 'Do you mean budgets, transactions, or categories? If you want totals, include a date range (e.g., "this week" or "last month").';
     }
 }
-
