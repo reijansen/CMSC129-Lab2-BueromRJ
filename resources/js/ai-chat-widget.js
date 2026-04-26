@@ -66,6 +66,8 @@ const parseErrorMessage = async (response) => {
     return 'Something went wrong. Please try again.';
 };
 
+const shouldRefreshAfterResponse = (data) => Boolean(data?.created || data?.executed);
+
 export const setupAIChatWidget = () => {
     const root = document.querySelector('[data-ai-chat-widget]');
     if (!root) return;
@@ -199,6 +201,10 @@ export const setupAIChatWidget = () => {
                 lastHistory = Array.isArray(data?.history) ? data.history : lastHistory;
                 renderHistory(messagesEl, lastHistory);
                 clearPendingControls();
+
+                if (shouldRefreshAfterResponse(data)) {
+                    setTimeout(() => window.location.reload(), 800);
+                }
             } finally {
                 setLoading(false);
             }
@@ -251,6 +257,10 @@ export const setupAIChatWidget = () => {
 
             if (data?.mode === 'propose') {
                 renderPendingControls();
+            }
+
+            if (shouldRefreshAfterResponse(data)) {
+                setTimeout(() => window.location.reload(), 800);
             }
         } finally {
             setLoading(false);
