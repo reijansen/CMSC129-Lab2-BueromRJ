@@ -7,6 +7,8 @@ use RuntimeException;
 
 class SupabaseAuthService
 {
+    private const TIMEOUT_SECONDS = 10;
+
     public function signInWithPassword(string $email, string $password): array
     {
         $response = $this->baseRequest()
@@ -62,7 +64,7 @@ class SupabaseAuthService
     {
         $anonKey = (string) config('services.supabase.anon_key');
 
-        return Http::withHeaders([
+        return Http::timeout(self::TIMEOUT_SECONDS)->withHeaders([
             'apikey' => $anonKey,
             'Accept' => 'application/json',
         ]);

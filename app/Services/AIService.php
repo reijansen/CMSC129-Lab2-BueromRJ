@@ -13,11 +13,13 @@ class AIService
      * @param  array<int, array{role: string, content: string}>  $messages
      * @return array{content: string, raw: array<mixed>}
      */
-    public function chat(array $messages): array
+    public function chat(array $messages, ?string $modelOverride = null): array
     {
         $baseUrl = (string) config('ai.ollama.base_url');
-        $model = (string) config('ai.ollama.model');
+        $model = $modelOverride ?: (string) config('ai.ollama.model');
         $timeoutSeconds = (int) config('ai.request_timeout_seconds', 30);
+
+        $this->extendExecutionTime($timeoutSeconds + 15);
 
         if ($baseUrl === '' || $model === '') {
             throw new RuntimeException('AI is not configured. Please set OLLAMA_BASE_URL and OLLAMA_MODEL.');
@@ -26,7 +28,8 @@ class AIService
         $url = rtrim($baseUrl, '/') . '/api/chat';
 
         try {
-            $response = Http::timeout($timeoutSeconds)
+            $response = Http::connectTimeout(min(5, max(1, $timeoutSeconds)))
+                ->timeout($timeoutSeconds)
                 ->acceptJson()
                 ->asJson()
                 ->post($url, [
@@ -56,5 +59,23 @@ class AIService
             'raw' => $raw,
         ];
     }
-}
 
+    private function extendExecutionTime(int $seconds): void
+    {
+        if ($seconds <= 0) {
+            return;
+        }
+
+        try {
+            @set_time_limit($seconds);
+        } catch (\Throwable) {
+            // ignore
+        }
+
+        try {
+            @ini_set('max_execution_time', (string) $seconds);
+        } catch (\Throwable) {
+            // ignore
+        }
+    }
+}

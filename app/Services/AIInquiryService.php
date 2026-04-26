@@ -42,6 +42,36 @@ class AIInquiryService
 
         $intentPayload = $this->classifyIntent($userMessage, $history);
 
+        return $this->replyFromIntentPayload($userId, $intentPayload, $userMessage, $contextState);
+    }
+
+    /**
+     * Use a precomputed intent payload (e.g., provided by an assistant router) to avoid an extra LLM call.
+     *
+     * @param  array<int, array{role: string, content: string}>  $history
+     * @param  array<string, mixed>  $contextState
+     * @param  array<string, mixed>  $intentPayload
+     * @return array{reply: string, context_update: array<string, mixed>}
+     */
+    public function replyWithContextFromIntentPayload(int $userId, string $userMessage, array $history, array $contextState, array $intentPayload): array
+    {
+        $contextState = AIContextState::normalize($contextState);
+
+        $implicit = $this->tryImplicitFollowupReply($userId, $userMessage, $contextState);
+        if ($implicit) {
+            return $implicit;
+        }
+
+        return $this->replyFromIntentPayload($userId, $intentPayload, $userMessage, $contextState);
+    }
+
+    /**
+     * @param  array<string, mixed>  $intentPayload
+     * @param  array<string, mixed>  $contextState
+     * @return array{reply: string, context_update: array<string, mixed>}
+     */
+    private function replyFromIntentPayload(int $userId, array $intentPayload, string $userMessage, array $contextState): array
+    {
         $intent = (string) ($intentPayload['intent'] ?? 'clarify');
         $filters = is_array($intentPayload['filters'] ?? null) ? $intentPayload['filters'] : [];
 
@@ -121,7 +151,8 @@ class AIInquiryService
             [['role' => 'user', 'content' => $userMessage]]
         );
 
-        $result = $this->aiService->chat($messages);
+        $routerModel = (string) config('ai.ollama.router_model', config('ai.ollama.model'));
+        $result = $this->aiService->chat($messages, $routerModel);
         $content = (string) ($result['content'] ?? '');
 
         $json = $this->extractJsonObject($content);
@@ -177,7 +208,7 @@ class AIInquiryService
     private function recentContextMessages(array $history, int $max): array
     {
         $withoutSystem = array_values(array_filter($history, fn (array $m) => ($m['role'] ?? null) !== 'system'));
-        $slice = array_slice($withoutSystem, -max);
+        $slice = array_slice($withoutSystem, -$max);
 
         return array_map(function (array $message): array {
             $role = (string) ($message['role'] ?? 'user');
@@ -954,15 +985,19 @@ class AIInquiryService
      */
     private function formatTransactionsReply(Collection $transactions): string
     {
-        $lines = $transactions->map(function (Transaction $t): string {
+        $lines = $transactions->values()->map(function (Transaction $t, int $index): string {
+            $i = $index + 1;
             $date = Carbon::parse($t->transaction_date)->toDateString();
             $amount = number_format((float) $t->amount, 2);
             $category = $t->category?->name ?? 'Unknown Category';
             $budget = $t->budget?->title ?? 'No Budget';
 
-            return "- [{$date}] {$t->type}: {$t->title} | {$amount} | {$category} | {$budget}";
+            return "{$i}) {$date} — {$t->type} — {$t->title}\n"
+                . "   Amount: ₱{$amount}\n"
+                . "   Category: {$category}\n"
+                . "   Budget: {$budget}";
         })->all();
 
-        return "Here are the transactions I found:\n" . implode("\n", $lines);
+        return "Here are the transactions I found:\n\n" . implode("\n\n", $lines);
     }
 }

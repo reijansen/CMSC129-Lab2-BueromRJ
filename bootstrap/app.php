@@ -16,6 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'supabase.auth' => \App\Http\Middleware\EnsureSupabaseAuthenticated::class,
             'supabase.guest' => \App\Http\Middleware\EnsureSupabaseGuest::class,
         ]);
+
+        if (env('APP_ENV') === 'local') {
+            $middleware->validateCsrfTokens([
+                'api/ai/*',
+            ]);
+        }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

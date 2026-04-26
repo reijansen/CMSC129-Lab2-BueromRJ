@@ -27,11 +27,49 @@ class AIAssistantService
     {
         $contextState = AIContextState::normalize($request->session()->get(AIContextState::SESSION_KEY));
 
+        if ($this->looksLikeInquiryMessage($userMessage)) {
+            $intentPayload = $this->quickInquiryIntentPayload($userMessage);
+            $inquiry = $intentPayload
+                ? $this->aiInquiryService->replyWithContextFromIntentPayload($userId, $userMessage, $history, $contextState, $intentPayload)
+                : $this->aiInquiryService->replyWithContext($userId, $userMessage, $history, $contextState);
+
+            $request->session()->put(
+                AIContextState::SESSION_KEY,
+                AIContextState::merge($contextState, $inquiry['context_update'] ?? [])
+            );
+
+            return [
+                'mode' => 'reply',
+                'reply' => (string) ($inquiry['reply'] ?? ''),
+            ];
+        }
+
         $actionPayload = $this->classifyAction($userMessage, $history);
         $action = (string) ($actionPayload['action'] ?? 'clarify');
 
+        if (in_array($action, ['create', 'update', 'delete'], true) && $this->looksLikeInquiryMessage($userMessage)) {
+            $action = 'inquiry';
+        }
+
         if ($action === 'inquiry') {
-            $inquiry = $this->aiInquiryService->replyWithContext($userId, $userMessage, $history, $contextState);
+            $intent = $actionPayload['intent'] ?? null;
+            $filters = $actionPayload['filters'] ?? null;
+
+            if (is_string($intent)) {
+                $inquiry = $this->aiInquiryService->replyWithContextFromIntentPayload(
+                    $userId,
+                    $userMessage,
+                    $history,
+                    $contextState,
+                    [
+                        'intent' => $intent,
+                        'filters' => is_array($filters) ? $filters : [],
+                    ]
+                );
+            } else {
+                $inquiry = $this->aiInquiryService->replyWithContext($userId, $userMessage, $history, $contextState);
+            }
+
             $request->session()->put(AIContextState::SESSION_KEY, AIContextState::merge($contextState, $inquiry['context_update'] ?? []));
 
             return [
@@ -212,7 +250,8 @@ class AIAssistantService
             ['role' => 'user', 'content' => $userMessage],
         ];
 
-        $result = $this->aiService->chat($messages);
+        $routerModel = (string) config('ai.ollama.router_model', config('ai.ollama.model'));
+        $result = $this->aiService->chat($messages, $routerModel);
         $content = (string) ($result['content'] ?? '');
 
         $json = $this->extractJsonObject($content);
@@ -233,7 +272,9 @@ class AIAssistantService
         return implode("\n", [
             'You are a strict JSON action router for a finance tracker app called Finko.',
             'Return STRICT JSON only. No markdown, no code fences, no extra text.',
-            'If user is asking a question, return: { "action": "inquiry" }',
+            'Important: If the user says "list", "show", "what", "how many", "recent", "latest", "total", or asks a question, it is an inquiry.',
+            'If user is asking a question, return an inquiry payload with intent+filters:',
+            '{ "action": "inquiry", "intent": "...", "filters": { "date_from": "YYYY-MM-DD|null", "date_to": "YYYY-MM-DD|null", "type": "income|expense|null", "category_name": "string|null", "budget_title": "string|null", "payment_method": "string|null", "limit": 10 } }',
             'If unclear, return: { "action": "clarify", "question": "..." }',
             'Otherwise, return exactly one of these shapes:',
             '{ "action":"create", "resource":"category|budget|transaction", "data":{...} }',
@@ -247,6 +288,70 @@ class AIAssistantService
             '  Budget: category_id OR category_name, title, allocated_amount, period_start (YYYY-MM-DD), period_end (YYYY-MM-DD), status (active|completed|exceeded|archived), notes',
             '  Transaction: category_id OR category_name, budget_id OR budget_title (nullable), title, amount, type (income|expense), transaction_date (YYYY-MM-DD), payment_method, notes',
         ]);
+    }
+
+    private function looksLikeInquiryMessage(string $text): bool
+    {
+        $lower = strtolower(trim($text));
+
+        $inquiryHints = [
+            'list', 'show', 'what', 'which', 'how many', 'recent', 'latest', 'total', 'sum', 'top', 'most', 'max',
+        ];
+
+        $actionVerbs = [
+            'add', 'create', 'make', 'new', 'update', 'change', 'edit', 'delete', 'remove', 'archive', 'restore',
+        ];
+
+        $hasInquiry = Str::contains($lower, $inquiryHints) || str_ends_with($lower, '?');
+        $hasAction = Str::contains($lower, $actionVerbs);
+
+        return $hasInquiry && ! $hasAction;
+    }
+
+    /**
+     * Lightweight mapping for obvious inquiry commands to avoid misrouting.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function quickInquiryIntentPayload(string $text): ?array
+    {
+        $lower = strtolower($text);
+        $limit = $this->extractLimit($lower) ?? 10;
+
+        if (Str::contains($lower, ['transaction', 'transactions'])) {
+            return [
+                'intent' => 'list_transactions',
+                'filters' => ['limit' => $limit],
+            ];
+        }
+
+        if (Str::contains($lower, ['category', 'categories'])) {
+            return [
+                'intent' => 'list_categories',
+                'filters' => ['limit' => $limit],
+            ];
+        }
+
+        if (Str::contains($lower, ['budget', 'budgets'])) {
+            return [
+                'intent' => 'list_budgets',
+                'filters' => ['limit' => $limit],
+            ];
+        }
+
+        return null;
+    }
+
+    private function extractLimit(string $text): ?int
+    {
+        if (preg_match('/\b(\d{1,2})\b/', $text, $m)) {
+            $n = (int) $m[1];
+            if ($n > 0) {
+                return min($n, 20);
+            }
+        }
+
+        return null;
     }
 
     /**

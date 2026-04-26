@@ -8,6 +8,6 @@ return [
     'ollama' => [
         'base_url' => rtrim((string) env('OLLAMA_BASE_URL', 'http://127.0.0.1:11434'), '/'),
         'model' => (string) env('OLLAMA_MODEL', 'qwen2.5:3b'),
+        'router_model' => (string) env('OLLAMA_ROUTER_MODEL', env('OLLAMA_MODEL', 'qwen2.5:3b')),
     ],
 ];
-
