@@ -390,14 +390,20 @@ class AIInquiryService
             ];
         }
 
-        $lines = $categories->take(15)->map(fn (Category $c) => "- #{$c->id}: {$c->name} ({$c->type})")->all();
+        $slice = $categories->take(15)->values();
+        $lines = $slice->map(function (Category $c, int $index): string {
+            $i = $index + 1;
+
+            return "{$i}) #{$c->id} — {$c->name}\n"
+                . "   Type: {$c->type}";
+        })->all();
 
         $extra = $categories->count() > 15 ? "\n(Showing 15 of {$categories->count()} categories.)" : '';
 
-        $ids = $categories->take(15)->pluck('id')->all();
+        $ids = $slice->pluck('id')->all();
 
         return [
-            'reply' => "Here are your categories:\n" . implode("\n", $lines) . $extra,
+            'reply' => "Here are your categories:\n\n" . implode("\n\n", $lines) . $extra,
             'context_update' => [
                 'last_list' => [
                     'resource' => 'category',
@@ -432,7 +438,10 @@ class AIInquiryService
         $both = (int) ($counts['both'] ?? 0);
 
         return [
-            'reply' => "You have {$total} categories total (expense: {$expense}, income: {$income}, both: {$both}).",
+            'reply' => "You have {$total} categories total.\n\n"
+                . "Expense: {$expense}\n"
+                . "Income: {$income}\n"
+                . "Both: {$both}",
             'context_update' => [],
         ];
     }
@@ -454,19 +463,24 @@ class AIInquiryService
             ];
         }
 
-        $lines = $budgets->map(function (Budget $b): string {
+        $lines = $budgets->values()->map(function (Budget $b, int $index): string {
+            $i = $index + 1;
             $category = $b->category?->name ?? 'Uncategorized';
             $start = Carbon::parse($b->period_start)->toDateString();
             $end = Carbon::parse($b->period_end)->toDateString();
-            $allocated = number_format((float) $b->allocated_amount, 2);
+            $allocated = $this->formatMoney((float) $b->allocated_amount);
 
-            return "- #{$b->id}: {$b->title} ({$category}) | Allocated: {$allocated} | {$start} to {$end} | Status: {$b->status}";
+            return "{$i}) #{$b->id} — {$b->title}\n"
+                . "   Category: {$category}\n"
+                . "   Allocated: {$allocated}\n"
+                . "   Period: {$start} to {$end}\n"
+                . "   Status: {$b->status}";
         })->all();
 
         $ids = $budgets->pluck('id')->all();
 
         return [
-            'reply' => "Here are your latest budgets:\n" . implode("\n", $lines),
+            'reply' => "Here are your latest budgets:\n\n" . implode("\n\n", $lines),
             'context_update' => [
                 'last_list' => [
                     'resource' => 'budget',
@@ -495,7 +509,7 @@ class AIInquiryService
 
         if ($transactions->isEmpty()) {
             return [
-                'reply' => 'No transactions found for that query.',
+                'reply' => "No transactions found for that query.\n\nTry: \"List my latest 10 transactions\" or \"Show expenses this week\".",
                 'context_update' => [
                     'last_list' => null,
                 ],
@@ -559,14 +573,14 @@ class AIInquiryService
         }
 
         $sum = (float) $query->sum('amount');
-        $formatted = number_format($sum, 2);
+        $formatted = $this->formatMoney($sum);
 
         $range = $this->describeDateRange($from, $to);
         if ($type === 'expense') {
             $suffix = $category ? " in category \"{$category->name}\"" : '';
 
             return [
-                'reply' => "Your total expenses{$suffix}{$range}: {$formatted}.",
+                'reply' => "Total expenses{$suffix}{$range}: {$formatted}",
                 'context_update' => [
                     'last_date_range' => $this->dateRangeForContext($from, $to),
                 ],
@@ -574,7 +588,7 @@ class AIInquiryService
         }
 
         return [
-            'reply' => "Your total income{$range}: {$formatted}.",
+            'reply' => "Total income{$range}: {$formatted}",
             'context_update' => [
                 'last_date_range' => $this->dateRangeForContext($from, $to),
             ],
@@ -607,7 +621,7 @@ class AIInquiryService
 
         if ($rows->isEmpty()) {
             return [
-                'reply' => 'No expense transactions found for that date range.',
+                'reply' => "No expense transactions found for that date range.\n\nTry a different range like \"this month\" or \"last month\".",
                 'context_update' => [
                     'last_date_range' => $this->dateRangeForContext($from, $to),
                 ],
@@ -617,7 +631,7 @@ class AIInquiryService
         $range = $this->describeDateRange($from, $to);
         $lines = $rows->map(function ($row): string {
             $name = (string) $row->category_name;
-            $total = number_format((float) $row->total_spent, 2);
+            $total = $this->formatMoney((float) $row->total_spent);
 
             return "- {$name}: {$total}";
         })->all();
@@ -653,7 +667,7 @@ class AIInquiryService
 
         if (! $transaction) {
             return [
-                'reply' => 'No expense transactions found for that date range.',
+                'reply' => "No expense transactions found for that date range.\n\nTry: \"List my latest 10 transactions\".",
                 'context_update' => [
                     'last_date_range' => $this->dateRangeForContext($from, $to),
                 ],
@@ -662,11 +676,14 @@ class AIInquiryService
 
         $range = $this->describeDateRange($from, $to);
         $date = Carbon::parse($transaction->transaction_date)->toDateString();
-        $amount = number_format((float) $transaction->amount, 2);
+        $amount = $this->formatMoney((float) $transaction->amount);
         $category = $transaction->category?->name ?? 'Unknown Category';
 
         return [
-            'reply' => "Your maximum expense{$range} is {$amount} for \"{$transaction->title}\" ({$category}) on {$date}.",
+            'reply' => "Maximum expense{$range}: {$amount}\n\n"
+                . "Transaction: #{$transaction->id} — {$transaction->title}\n"
+                . "Category: {$category}\n"
+                . "Date: {$date}",
             'context_update' => [
                 'last_entity_type' => 'transaction',
                 'last_entity_id' => (int) $transaction->id,
@@ -732,7 +749,7 @@ class AIInquiryService
 
         if ($transactions->isEmpty()) {
             return [
-                'reply' => 'No transactions found for that query.',
+                'reply' => "No transactions found for that query.\n\nTry removing one filter (date, payment method, or category) and retry.",
                 'context_update' => [
                     'last_list' => null,
                     'last_date_range' => $this->dateRangeForContext($from, $to),
@@ -787,27 +804,32 @@ class AIInquiryService
 
         $spentByBudget = $this->spentByBudget($userId, $budgets, $from, $to);
 
-        $lines = $budgets->map(function (Budget $b) use ($spentByBudget, $from, $to): string {
+        $lines = $budgets->values()->map(function (Budget $b, int $index) use ($spentByBudget, $from, $to): string {
+            $i = $index + 1;
             $spent = (float) ($spentByBudget[$b->id] ?? 0);
             $allocated = (float) $b->allocated_amount;
             $remaining = $allocated - $spent;
             $category = $b->category?->name ?? 'Uncategorized';
 
-            $spentText = number_format($spent, 2);
-            $allocatedText = number_format($allocated, 2);
-            $remainingText = number_format($remaining, 2);
+            $spentText = $this->formatMoney($spent);
+            $allocatedText = $this->formatMoney($allocated);
+            $remainingText = $this->formatMoney($remaining);
 
             $range = ($from || $to) ? $this->describeDateRange($from, $to) : ' (budget period)';
 
             $status = $spent > $allocated ? 'EXCEEDED' : 'OK';
 
-            return "- {$b->title} ({$category}){$range}: Spent {$spentText} / {$allocatedText} (Remaining {$remainingText}) → {$status}";
+            return "{$i}) #{$b->id} — {$b->title} ({$category}){$range}\n"
+                . "   Spent: {$spentText}\n"
+                . "   Allocated: {$allocatedText}\n"
+                . "   Remaining: {$remainingText}\n"
+                . "   Status: {$status}";
         })->all();
 
         $ids = $budgets->pluck('id')->all();
 
         return [
-            'reply' => "Budget status:\n" . implode("\n", $lines),
+            'reply' => "Budget status:\n\n" . implode("\n\n", $lines),
             'context_update' => [
                 'last_list' => [
                     'resource' => 'budget',
@@ -988,16 +1010,22 @@ class AIInquiryService
         $lines = $transactions->values()->map(function (Transaction $t, int $index): string {
             $i = $index + 1;
             $date = Carbon::parse($t->transaction_date)->toDateString();
-            $amount = number_format((float) $t->amount, 2);
+            $amount = $this->formatMoney((float) $t->amount);
             $category = $t->category?->name ?? 'Unknown Category';
             $budget = $t->budget?->title ?? 'No Budget';
 
-            return "{$i}) {$date} — {$t->type} — {$t->title}\n"
-                . "   Amount: ₱{$amount}\n"
+            return "{$i}) #{$t->id} — {$date} — {$t->type}\n"
+                . "   Title: {$t->title}\n"
+                . "   Amount: {$amount}\n"
                 . "   Category: {$category}\n"
                 . "   Budget: {$budget}";
         })->all();
 
         return "Here are the transactions I found:\n\n" . implode("\n\n", $lines);
+    }
+
+    private function formatMoney(float $amount): string
+    {
+        return '₱' . number_format($amount, 2);
     }
 }

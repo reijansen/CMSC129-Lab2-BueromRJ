@@ -21,6 +21,7 @@ const renderMessage = (container, message) => {
     }
 
     const wrapper = document.createElement('div');
+    wrapper.className = 'space-y-2';
     const bubble = document.createElement('div');
     bubble.className =
         role === 'user'
