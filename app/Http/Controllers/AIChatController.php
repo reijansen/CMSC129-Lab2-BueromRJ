@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\AIInquiryService;
+use App\Services\AIContextState;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -38,7 +39,10 @@ class AIChatController extends Controller
         $history = $this->trimHistory($history);
 
         try {
-            $reply = $this->aiInquiryService->reply($userId, $validated['message'], $history);
+            $contextState = AIContextState::normalize($request->session()->get(AIContextState::SESSION_KEY));
+            $result = $this->aiInquiryService->replyWithContext($userId, $validated['message'], $history, $contextState);
+            $request->session()->put(AIContextState::SESSION_KEY, AIContextState::merge($contextState, $result['context_update'] ?? []));
+            $reply = (string) ($result['reply'] ?? '');
         } catch (RuntimeException) {
             return response()->json([
                 'error' => 'AI service is currently unavailable. Please try again.',
@@ -67,6 +71,7 @@ class AIChatController extends Controller
     public function reset(Request $request): JsonResponse
     {
         $request->session()->forget(self::SESSION_HISTORY_KEY);
+        $request->session()->forget(AIContextState::SESSION_KEY);
 
         return response()->json([
             'reply' => 'Chat history cleared.',

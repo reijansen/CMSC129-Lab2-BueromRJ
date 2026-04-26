@@ -25,13 +25,18 @@ class AIAssistantService
      */
     public function handle(int $userId, string $userMessage, array $history, Request $request): array
     {
+        $contextState = AIContextState::normalize($request->session()->get(AIContextState::SESSION_KEY));
+
         $actionPayload = $this->classifyAction($userMessage, $history);
         $action = (string) ($actionPayload['action'] ?? 'clarify');
 
         if ($action === 'inquiry') {
+            $inquiry = $this->aiInquiryService->replyWithContext($userId, $userMessage, $history, $contextState);
+            $request->session()->put(AIContextState::SESSION_KEY, AIContextState::merge($contextState, $inquiry['context_update'] ?? []));
+
             return [
                 'mode' => 'reply',
-                'reply' => $this->aiInquiryService->reply($userId, $userMessage, $history),
+                'reply' => (string) ($inquiry['reply'] ?? ''),
             ];
         }
 
@@ -52,15 +57,25 @@ class AIAssistantService
             ];
         }
 
-        return match ($action) {
+        $result = match ($action) {
             'create' => $this->handleCreate($userId, $resource, $actionPayload['data'] ?? []),
-            'update' => $this->handleUpdateOrDelete($request, $userId, 'update', $resource, $actionPayload),
-            'delete' => $this->handleUpdateOrDelete($request, $userId, 'delete', $resource, $actionPayload),
+            'update' => $this->handleUpdateOrDelete($request, $contextState, $userId, $userMessage, 'update', $resource, $actionPayload),
+            'delete' => $this->handleUpdateOrDelete($request, $contextState, $userId, $userMessage, 'delete', $resource, $actionPayload),
             default => [
                 'mode' => 'reply',
                 'reply' => 'I can help with create, update, delete, or inquiries. Please rephrase your request.',
             ],
         };
+
+        if (is_array($result['context_update'] ?? null)) {
+            $request->session()->put(
+                AIContextState::SESSION_KEY,
+                AIContextState::merge($contextState, $result['context_update'])
+            );
+            unset($result['context_update']);
+        }
+
+        return $result;
     }
 
     /**
@@ -70,6 +85,8 @@ class AIAssistantService
      */
     public function confirmPending(int $userId, Request $request): array
     {
+        $contextState = AIContextState::normalize($request->session()->get(AIContextState::SESSION_KEY));
+
         $pending = $request->session()->get(self::SESSION_PENDING_ACTION_KEY);
         if (! is_array($pending)) {
             return [
@@ -107,6 +124,11 @@ class AIAssistantService
             $label = $resource === 'category' ? (string) $record->name : (string) $record->title;
             $record->delete();
             $request->session()->forget(self::SESSION_PENDING_ACTION_KEY);
+            $request->session()->put(AIContextState::SESSION_KEY, AIContextState::merge($contextState, [
+                'last_entity_type' => null,
+                'last_entity_id' => null,
+                'last_list' => null,
+            ]));
 
             return [
                 'mode' => 'reply',
@@ -140,6 +162,10 @@ class AIAssistantService
 
         $record->update($validation['data']);
         $request->session()->forget(self::SESSION_PENDING_ACTION_KEY);
+        $request->session()->put(AIContextState::SESSION_KEY, AIContextState::merge($contextState, [
+            'last_entity_type' => $resource,
+            'last_entity_id' => (int) $record->id,
+        ]));
 
         $after = $this->previewFor($resource, $record->fresh(), null)['before'] ?? [];
 
@@ -287,14 +313,19 @@ class AIAssistantService
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function handleUpdateOrDelete(Request $request, int $userId, string $op, string $resource, array $payload): array
+    private function handleUpdateOrDelete(Request $request, array $contextState, int $userId, string $userMessage, string $op, string $resource, array $payload): array
     {
         $selector = $payload['selector'] ?? null;
         if (! is_array($selector)) {
-            return [
-                'mode' => 'reply',
-                'reply' => 'Please specify which record to ' . $op . ' (by id or name/title).',
-            ];
+            $resolved = $this->resolveSelectorFromContext($contextState, $userMessage, $resource);
+            if (! $resolved) {
+                return [
+                    'mode' => 'reply',
+                    'reply' => 'Please specify which record to ' . $op . ' (by id or name/title).',
+                ];
+            }
+
+            $selector = $resolved;
         }
 
         if (isset($selector['id'])) {
@@ -326,6 +357,22 @@ class AIAssistantService
         }
 
         if (! $nameOrTitle) {
+            $resolved = $this->resolveSelectorFromContext($contextState, $userMessage, $resource);
+            if ($resolved) {
+                $selector = $resolved;
+                if (isset($selector['id'])) {
+                    $record = $this->findById($userId, $resource, (int) $selector['id']);
+                    if (! $record) {
+                        return [
+                            'mode' => 'reply',
+                            'reply' => 'I could not find that record anymore.',
+                        ];
+                    }
+
+                    return $this->propose($request, $op, $resource, ['id' => (int) $selector['id']], $payload['data'] ?? null, $record);
+                }
+            }
+
             return [
                 'mode' => 'reply',
                 'reply' => 'Please specify which record to ' . $op . ' (by id or exact name/title).',
@@ -371,6 +418,65 @@ class AIAssistantService
         $lower = strtolower($value);
 
         return Str::contains($lower, [' all ', ' every ', ' everything', ' all', ' every', '*']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $contextState
+     * @return array<string, mixed>|null
+     */
+    private function resolveSelectorFromContext(array $contextState, string $userMessage, string $resource): ?array
+    {
+        $lastEntityType = $contextState['last_entity_type'] ?? null;
+        $lastEntityId = $contextState['last_entity_id'] ?? null;
+        $lastList = is_array($contextState['last_list'] ?? null) ? $contextState['last_list'] : null;
+
+        $ordinal = $this->extractOrdinalIndex($userMessage);
+        if ($ordinal !== null && $lastList && ($lastList['resource'] ?? null) === $resource) {
+            $ids = is_array($lastList['ids'] ?? null) ? $lastList['ids'] : [];
+            $idx = $ordinal;
+            if ($idx === -1) {
+                $id = (int) ($ids[count($ids) - 1] ?? 0);
+                return $id > 0 ? ['id' => $id] : null;
+            }
+
+            $id = (int) ($ids[$idx] ?? 0);
+            return $id > 0 ? ['id' => $id] : null;
+        }
+
+        $lower = strtolower(trim($userMessage));
+        $pronoun = in_array($lower, ['it', 'that', 'that one', 'this', 'this one'], true);
+
+        if ($pronoun && $lastEntityType === $resource && is_int($lastEntityId) && $lastEntityId > 0) {
+            return ['id' => $lastEntityId];
+        }
+
+        return null;
+    }
+
+    private function extractOrdinalIndex(string $text): ?int
+    {
+        $lower = strtolower($text);
+
+        if (Str::contains($lower, 'last')) {
+            return -1;
+        }
+        if (Str::contains($lower, 'first')) {
+            return 0;
+        }
+        if (Str::contains($lower, 'second') || preg_match('/\#\s*2\b/', $lower) || preg_match('/\b2nd\b/', $lower)) {
+            return 1;
+        }
+        if (Str::contains($lower, 'third') || preg_match('/\#\s*3\b/', $lower) || preg_match('/\b3rd\b/', $lower)) {
+            return 2;
+        }
+        if (preg_match('/\#\s*(\d+)\b/', $lower, $m)) {
+            $n = (int) $m[1];
+            if ($n > 0) {
+                return $n - 1;
+            }
+        }
+
+        return null;
     }
 
     private function propose(Request $request, string $op, string $resource, array $selector, mixed $data, $record): array
@@ -675,6 +781,10 @@ class AIAssistantService
                 'resource' => 'category',
                 'id' => $category->id,
             ],
+            'context_update' => [
+                'last_entity_type' => 'category',
+                'last_entity_id' => (int) $category->id,
+            ],
         ];
     }
 
@@ -742,6 +852,10 @@ class AIAssistantService
             'created' => [
                 'resource' => 'budget',
                 'id' => $budget->id,
+            ],
+            'context_update' => [
+                'last_entity_type' => 'budget',
+                'last_entity_id' => (int) $budget->id,
             ],
         ];
     }
@@ -858,6 +972,10 @@ class AIAssistantService
             'created' => [
                 'resource' => 'transaction',
                 'id' => $transaction->id,
+            ],
+            'context_update' => [
+                'last_entity_type' => 'transaction',
+                'last_entity_id' => (int) $transaction->id,
             ],
         ];
     }

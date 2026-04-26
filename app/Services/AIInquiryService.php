@@ -21,17 +21,39 @@ class AIInquiryService
      */
     public function reply(int $userId, string $userMessage, array $history): string
     {
+        $result = $this->replyWithContext($userId, $userMessage, $history, AIContextState::default());
+
+        return (string) ($result['reply'] ?? '');
+    }
+
+    /**
+     * @param  array<int, array{role: string, content: string}>  $history
+     * @param  array<string, mixed>  $contextState
+     * @return array{reply: string, context_update: array<string, mixed>}
+     */
+    public function replyWithContext(int $userId, string $userMessage, array $history, array $contextState): array
+    {
+        $contextState = AIContextState::normalize($contextState);
+
+        $implicit = $this->tryImplicitFollowupReply($userId, $userMessage, $contextState);
+        if ($implicit) {
+            return $implicit;
+        }
+
         $intentPayload = $this->classifyIntent($userMessage, $history);
 
         $intent = (string) ($intentPayload['intent'] ?? 'clarify');
         $filters = is_array($intentPayload['filters'] ?? null) ? $intentPayload['filters'] : [];
 
-        $resolved = $this->resolveFilters($userMessage, $filters);
+        $resolved = $this->resolveFilters($intent, $userMessage, $filters, $contextState);
 
         if ($intent === 'clarify') {
             $clarify = (string) ($intentPayload['clarify_question'] ?? '');
 
-            return $clarify !== '' ? $clarify : $this->defaultClarify();
+            return [
+                'reply' => $clarify !== '' ? $clarify : $this->defaultClarify(),
+                'context_update' => [],
+            ];
         }
 
         return match ($intent) {
@@ -77,7 +99,10 @@ class AIInquiryService
                 $resolved['date_to'] ?? null
             ),
             'filter_transactions' => $this->filterTransactions($userId, $resolved),
-            default => $this->defaultClarify(),
+            default => [
+                'reply' => $this->defaultClarify(),
+                'context_update' => [],
+            ],
         };
     }
 
@@ -188,7 +213,7 @@ class AIInquiryService
      * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
-    private function resolveFilters(string $userMessage, array $filters): array
+    private function resolveFilters(string $intent, string $userMessage, array $filters, array $contextState): array
     {
         $limit = (int) ($filters['limit'] ?? 10);
         if ($limit <= 0) {
@@ -201,6 +226,14 @@ class AIInquiryService
 
         if (! $dateFrom && ! $dateTo) {
             [$dateFrom, $dateTo] = $this->inferRelativeDateRange($userMessage);
+        }
+
+        if (! $dateFrom && ! $dateTo) {
+            $fallback = $this->fallbackDateRangeFromContext($intent, $contextState);
+            if ($fallback) {
+                $dateFrom = $this->parseDateOrNull($fallback['date_from'] ?? null);
+                $dateTo = $this->parseDateOrNull($fallback['date_to'] ?? null);
+            }
         }
 
         return [
@@ -308,25 +341,45 @@ class AIInquiryService
         return [null, null];
     }
 
-    private function listCategories(int $userId): string
+    private function listCategories(int $userId): array
     {
         $categories = Category::query()
             ->where('user_id', $userId)
             ->orderBy('name')
-            ->get(['name', 'type']);
+            ->get(['id', 'name', 'type']);
 
         if ($categories->isEmpty()) {
-            return "You don't have any categories yet.";
+            return [
+                'reply' => "You don't have any categories yet.",
+                'context_update' => [
+                    'last_list' => null,
+                    'last_entity_type' => null,
+                    'last_entity_id' => null,
+                ],
+            ];
         }
 
-        $lines = $categories->take(15)->map(fn (Category $c) => "- {$c->name} ({$c->type})")->all();
+        $lines = $categories->take(15)->map(fn (Category $c) => "- #{$c->id}: {$c->name} ({$c->type})")->all();
 
         $extra = $categories->count() > 15 ? "\n(Showing 15 of {$categories->count()} categories.)" : '';
 
-        return "Here are your categories:\n" . implode("\n", $lines) . $extra;
+        $ids = $categories->take(15)->pluck('id')->all();
+
+        return [
+            'reply' => "Here are your categories:\n" . implode("\n", $lines) . $extra,
+            'context_update' => [
+                'last_list' => [
+                    'resource' => 'category',
+                    'ids' => $ids,
+                    'filters' => [],
+                ],
+                'last_entity_type' => 'category',
+                'last_entity_id' => (int) ($ids[0] ?? 0) ?: null,
+            ],
+        ];
     }
 
-    private function countCategories(int $userId): string
+    private function countCategories(int $userId): array
     {
         $counts = Category::query()
             ->where('user_id', $userId)
@@ -337,17 +390,23 @@ class AIInquiryService
         $total = (int) $counts->sum();
 
         if ($total === 0) {
-            return "You don't have any categories yet.";
+            return [
+                'reply' => "You don't have any categories yet.",
+                'context_update' => [],
+            ];
         }
 
         $expense = (int) ($counts['expense'] ?? 0);
         $income = (int) ($counts['income'] ?? 0);
         $both = (int) ($counts['both'] ?? 0);
 
-        return "You have {$total} categories total (expense: {$expense}, income: {$income}, both: {$both}).";
+        return [
+            'reply' => "You have {$total} categories total (expense: {$expense}, income: {$income}, both: {$both}).",
+            'context_update' => [],
+        ];
     }
 
-    private function listBudgets(int $userId, int $limit): string
+    private function listBudgets(int $userId, int $limit): array
     {
         $budgets = Budget::query()
             ->where('user_id', $userId)
@@ -358,7 +417,10 @@ class AIInquiryService
             ->get();
 
         if ($budgets->isEmpty()) {
-            return "You don't have any budgets yet.";
+            return [
+                'reply' => "You don't have any budgets yet.",
+                'context_update' => [],
+            ];
         }
 
         $lines = $budgets->map(function (Budget $b): string {
@@ -367,13 +429,26 @@ class AIInquiryService
             $end = Carbon::parse($b->period_end)->toDateString();
             $allocated = number_format((float) $b->allocated_amount, 2);
 
-            return "- {$b->title} ({$category}) | Allocated: {$allocated} | {$start} to {$end} | Status: {$b->status}";
+            return "- #{$b->id}: {$b->title} ({$category}) | Allocated: {$allocated} | {$start} to {$end} | Status: {$b->status}";
         })->all();
 
-        return "Here are your latest budgets:\n" . implode("\n", $lines);
+        $ids = $budgets->pluck('id')->all();
+
+        return [
+            'reply' => "Here are your latest budgets:\n" . implode("\n", $lines),
+            'context_update' => [
+                'last_list' => [
+                    'resource' => 'budget',
+                    'ids' => $ids,
+                    'filters' => [],
+                ],
+                'last_entity_type' => 'budget',
+                'last_entity_id' => (int) ($ids[0] ?? 0) ?: null,
+            ],
+        ];
     }
 
-    private function listTransactions(int $userId, ?Carbon $from, ?Carbon $to, int $limit): string
+    private function listTransactions(int $userId, ?Carbon $from, ?Carbon $to, int $limit): array
     {
         $query = Transaction::query()
             ->where('user_id', $userId)
@@ -388,16 +463,38 @@ class AIInquiryService
             ->get();
 
         if ($transactions->isEmpty()) {
-            return 'No transactions found for that query.';
+            return [
+                'reply' => 'No transactions found for that query.',
+                'context_update' => [
+                    'last_list' => null,
+                ],
+            ];
         }
 
-        return $this->formatTransactionsReply($transactions);
+        $ids = $transactions->pluck('id')->all();
+
+        return [
+            'reply' => $this->formatTransactionsReply($transactions),
+            'context_update' => [
+                'last_list' => [
+                    'resource' => 'transaction',
+                    'ids' => $ids,
+                    'filters' => $this->dateRangeFilters($from, $to),
+                ],
+                'last_entity_type' => 'transaction',
+                'last_entity_id' => (int) ($ids[0] ?? 0) ?: null,
+                'last_date_range' => $this->dateRangeForContext($from, $to),
+            ],
+        ];
     }
 
-    private function sumByType(int $userId, string $type, ?Carbon $from, ?Carbon $to, string $categoryName): string
+    private function sumByType(int $userId, string $type, ?Carbon $from, ?Carbon $to, string $categoryName): array
     {
         if (! $from && ! $to) {
-            return $this->needDateRange($type === 'expense' ? 'expenses' : 'income');
+            return [
+                'reply' => $this->needDateRange($type === 'expense' ? 'expenses' : 'income'),
+                'context_update' => [],
+            ];
         }
 
         $query = Transaction::query()
@@ -421,7 +518,10 @@ class AIInquiryService
             }
 
             if (! $category) {
-                return "I couldn't find a category matching \"{$categoryName}\". Try asking: \"List my categories\".";
+                return [
+                    'reply' => "I couldn't find a category matching \"{$categoryName}\". Try asking: \"List my categories\".",
+                    'context_update' => [],
+                ];
             }
 
             $query->where('category_id', $category->id);
@@ -434,16 +534,29 @@ class AIInquiryService
         if ($type === 'expense') {
             $suffix = $category ? " in category \"{$category->name}\"" : '';
 
-            return "Your total expenses{$suffix}{$range}: {$formatted}.";
+            return [
+                'reply' => "Your total expenses{$suffix}{$range}: {$formatted}.",
+                'context_update' => [
+                    'last_date_range' => $this->dateRangeForContext($from, $to),
+                ],
+            ];
         }
 
-        return "Your total income{$range}: {$formatted}.";
+        return [
+            'reply' => "Your total income{$range}: {$formatted}.",
+            'context_update' => [
+                'last_date_range' => $this->dateRangeForContext($from, $to),
+            ],
+        ];
     }
 
-    private function topSpendingCategories(int $userId, ?Carbon $from, ?Carbon $to, int $limit): string
+    private function topSpendingCategories(int $userId, ?Carbon $from, ?Carbon $to, int $limit): array
     {
         if (! $from && ! $to) {
-            return $this->needDateRange('top spending categories');
+            return [
+                'reply' => $this->needDateRange('top spending categories'),
+                'context_update' => [],
+            ];
         }
 
         $query = Transaction::query()
@@ -462,7 +575,12 @@ class AIInquiryService
             ->get();
 
         if ($rows->isEmpty()) {
-            return 'No expense transactions found for that date range.';
+            return [
+                'reply' => 'No expense transactions found for that date range.',
+                'context_update' => [
+                    'last_date_range' => $this->dateRangeForContext($from, $to),
+                ],
+            ];
         }
 
         $range = $this->describeDateRange($from, $to);
@@ -473,13 +591,21 @@ class AIInquiryService
             return "- {$name}: {$total}";
         })->all();
 
-        return "Top spending categories{$range}:\n" . implode("\n", $lines);
+        return [
+            'reply' => "Top spending categories{$range}:\n" . implode("\n", $lines),
+            'context_update' => [
+                'last_date_range' => $this->dateRangeForContext($from, $to),
+            ],
+        ];
     }
 
-    private function maxExpense(int $userId, ?Carbon $from, ?Carbon $to): string
+    private function maxExpense(int $userId, ?Carbon $from, ?Carbon $to): array
     {
         if (! $from && ! $to) {
-            return $this->needDateRange('maximum expense');
+            return [
+                'reply' => $this->needDateRange('maximum expense'),
+                'context_update' => [],
+            ];
         }
 
         $query = Transaction::query()
@@ -495,7 +621,12 @@ class AIInquiryService
             ->first();
 
         if (! $transaction) {
-            return 'No expense transactions found for that date range.';
+            return [
+                'reply' => 'No expense transactions found for that date range.',
+                'context_update' => [
+                    'last_date_range' => $this->dateRangeForContext($from, $to),
+                ],
+            ];
         }
 
         $range = $this->describeDateRange($from, $to);
@@ -503,13 +634,20 @@ class AIInquiryService
         $amount = number_format((float) $transaction->amount, 2);
         $category = $transaction->category?->name ?? 'Unknown Category';
 
-        return "Your maximum expense{$range} is {$amount} for \"{$transaction->title}\" ({$category}) on {$date}.";
+        return [
+            'reply' => "Your maximum expense{$range} is {$amount} for \"{$transaction->title}\" ({$category}) on {$date}.",
+            'context_update' => [
+                'last_entity_type' => 'transaction',
+                'last_entity_id' => (int) $transaction->id,
+                'last_date_range' => $this->dateRangeForContext($from, $to),
+            ],
+        ];
     }
 
     /**
      * @param  array<string, mixed>  $filters
      */
-    private function filterTransactions(int $userId, array $filters): string
+    private function filterTransactions(int $userId, array $filters): array
     {
         $from = $filters['date_from'] ?? null;
         $to = $filters['date_to'] ?? null;
@@ -546,7 +684,10 @@ class AIInquiryService
             }
 
             if (! $category) {
-                return "I couldn't find a category matching \"{$categoryName}\". Try asking: \"List my categories\".";
+                return [
+                    'reply' => "I couldn't find a category matching \"{$categoryName}\". Try asking: \"List my categories\".",
+                    'context_update' => [],
+                ];
             }
 
             $query->where('category_id', $category->id);
@@ -559,13 +700,38 @@ class AIInquiryService
             ->get();
 
         if ($transactions->isEmpty()) {
-            return 'No transactions found for that query.';
+            return [
+                'reply' => 'No transactions found for that query.',
+                'context_update' => [
+                    'last_list' => null,
+                    'last_date_range' => $this->dateRangeForContext($from, $to),
+                ],
+            ];
         }
 
-        return $this->formatTransactionsReply($transactions);
+        $ids = $transactions->pluck('id')->all();
+
+        return [
+            'reply' => $this->formatTransactionsReply($transactions),
+            'context_update' => [
+                'last_list' => [
+                    'resource' => 'transaction',
+                    'ids' => $ids,
+                    'filters' => array_filter([
+                        ...$this->dateRangeFilters($from, $to),
+                        'type' => is_string($type) ? $type : null,
+                        'category_name' => $categoryName !== '' ? $categoryName : null,
+                        'payment_method' => $paymentMethod !== '' ? $paymentMethod : null,
+                    ], fn ($v) => $v !== null),
+                ],
+                'last_entity_type' => 'transaction',
+                'last_entity_id' => (int) ($ids[0] ?? 0) ?: null,
+                'last_date_range' => $this->dateRangeForContext($from, $to),
+            ],
+        ];
     }
 
-    private function budgetStatus(int $userId, string $budgetTitle, ?Carbon $from, ?Carbon $to, int $limit): string
+    private function budgetStatus(int $userId, string $budgetTitle, ?Carbon $from, ?Carbon $to, int $limit): array
     {
         $budgetsQuery = Budget::query()
             ->where('user_id', $userId)
@@ -580,9 +746,12 @@ class AIInquiryService
         $budgets = $budgetsQuery->limit($limit)->get();
 
         if ($budgets->isEmpty()) {
-            return $budgetTitle !== ''
-                ? "I couldn't find a budget matching \"{$budgetTitle}\"."
-                : "You don't have any budgets yet.";
+            return [
+                'reply' => $budgetTitle !== ''
+                    ? "I couldn't find a budget matching \"{$budgetTitle}\"."
+                    : "You don't have any budgets yet.",
+                'context_update' => [],
+            ];
         }
 
         $spentByBudget = $this->spentByBudget($userId, $budgets, $from, $to);
@@ -604,7 +773,24 @@ class AIInquiryService
             return "- {$b->title} ({$category}){$range}: Spent {$spentText} / {$allocatedText} (Remaining {$remainingText}) → {$status}";
         })->all();
 
-        return "Budget status:\n" . implode("\n", $lines);
+        $ids = $budgets->pluck('id')->all();
+
+        return [
+            'reply' => "Budget status:\n" . implode("\n", $lines),
+            'context_update' => [
+                'last_list' => [
+                    'resource' => 'budget',
+                    'ids' => $ids,
+                    'filters' => array_filter([
+                        ...$this->dateRangeFilters($from, $to),
+                        'budget_title' => $budgetTitle !== '' ? $budgetTitle : null,
+                    ], fn ($v) => $v !== null),
+                ],
+                'last_entity_type' => 'budget',
+                'last_entity_id' => (int) ($ids[0] ?? 0) ?: null,
+                'last_date_range' => $this->dateRangeForContext($from, $to),
+            ],
+        ];
     }
 
     /**
@@ -687,6 +873,80 @@ class AIInquiryService
     private function needDateRange(string $topic): string
     {
         return "What date range should I use for {$topic}? (e.g., \"this week\", \"last month\", or \"2026-04-01 to 2026-04-26\")";
+    }
+
+    /**
+     * @param  array<string, mixed>  $contextState
+     */
+    private function tryImplicitFollowupReply(int $userId, string $userMessage, array $contextState): ?array
+    {
+        $lower = strtolower(trim($userMessage));
+
+        $looksLikeAmountQuestion = Str::contains($lower, ['how much', 'amount', 'how much was it', 'how much is it']);
+
+        if ($looksLikeAmountQuestion && ($contextState['last_entity_type'] ?? null) === 'transaction' && ($contextState['last_entity_id'] ?? null)) {
+            $transaction = Transaction::query()
+                ->where('user_id', $userId)
+                ->where('id', (int) $contextState['last_entity_id'])
+                ->with('category')
+                ->first();
+
+            if ($transaction) {
+                $amount = number_format((float) $transaction->amount, 2);
+                $date = Carbon::parse($transaction->transaction_date)->toDateString();
+                $category = $transaction->category?->name ?? 'Unknown Category';
+
+                return [
+                    'reply' => "That transaction is {$amount} ({$category}) on {$date}: \"{$transaction->title}\".",
+                    'context_update' => [],
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $contextState
+     */
+    private function fallbackDateRangeFromContext(string $intent, array $contextState): ?array
+    {
+        $wantsDateRange = in_array($intent, [
+            'sum_expenses',
+            'sum_income',
+            'top_spending_categories',
+            'max_expense',
+            'filter_transactions',
+            'budget_status',
+        ], true);
+
+        if (! $wantsDateRange) {
+            return null;
+        }
+
+        $range = $contextState['last_date_range'] ?? null;
+
+        return is_array($range) ? $range : null;
+    }
+
+    private function dateRangeForContext(?Carbon $from, ?Carbon $to): ?array
+    {
+        if (! $from && ! $to) {
+            return null;
+        }
+
+        return [
+            'date_from' => $from?->toDateString(),
+            'date_to' => $to?->toDateString(),
+        ];
+    }
+
+    private function dateRangeFilters(?Carbon $from, ?Carbon $to): array
+    {
+        return array_filter([
+            'date_from' => $from?->toDateString(),
+            'date_to' => $to?->toDateString(),
+        ], fn ($v) => $v !== null);
     }
 
     /**
