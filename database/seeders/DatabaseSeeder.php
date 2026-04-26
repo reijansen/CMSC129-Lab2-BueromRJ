@@ -102,7 +102,9 @@ class DatabaseSeeder extends Seeder
 
         for ($index = 0; $index < $budgetCount; $index++) {
             $category = $budgetCategories->random();
-            $periodStart = fake()->dateTimeBetween('-3 months', '-1 week');
+            $monthAnchor = \Carbon\Carbon::instance(fake()->dateTimeBetween('-3 months', 'now'));
+            $periodStart = $monthAnchor->copy()->startOfMonth();
+            $periodEnd = $monthAnchor->copy()->endOfMonth();
 
             $budgets->push(Budget::create([
                 'user_id' => $user->id,
@@ -110,7 +112,7 @@ class DatabaseSeeder extends Seeder
                 'title' => $category->name . ' Budget',
                 'allocated_amount' => fake()->randomFloat(2, 800, 10000),
                 'period_start' => $periodStart,
-                'period_end' => (clone $periodStart)->modify('+30 days'),
+                'period_end' => $periodEnd,
                 'status' => fake()->randomElement(['active', 'completed']),
                 'notes' => fake()->optional()->sentence(),
             ]));
@@ -189,4 +191,3 @@ class DatabaseSeeder extends Seeder
         ]);
     }
 }
-
