@@ -806,7 +806,9 @@ class AIInquiryService
 
         $lines = $budgets->values()->map(function (Budget $b, int $index) use ($spentByBudget, $from, $to): string {
             $i = $index + 1;
-            $spent = (float) ($spentByBudget[$b->id] ?? 0);
+            $categoryType = $b->category?->type ?? 'expense';
+            $trackedType = $categoryType === 'income' ? 'income' : 'expense';
+            $spent = (float) ($spentByBudget[$b->id][$trackedType] ?? 0);
             $allocated = (float) $b->allocated_amount;
             $remaining = $allocated - $spent;
             $category = $b->category?->name ?? 'Uncategorized';
@@ -816,6 +818,17 @@ class AIInquiryService
             $remainingText = $this->formatMoney($remaining);
 
             $range = ($from || $to) ? $this->describeDateRange($from, $to) : ' (budget period)';
+
+            if ($trackedType === 'income') {
+                $status = $spent >= $allocated ? 'MET' : 'BELOW';
+                $stillNeededText = $this->formatMoney(max(0, $allocated - $spent));
+
+                return "{$i}) #{$b->id} — {$b->title} ({$category}){$range}\n"
+                    . "   Received: {$spentText}\n"
+                    . "   Target: {$allocatedText}\n"
+                    . "   Still needed: {$stillNeededText}\n"
+                    . "   Status: {$status}";
+            }
 
             $status = $spent > $allocated ? 'EXCEEDED' : 'OK';
 
@@ -852,42 +865,42 @@ class AIInquiryService
      */
     private function spentByBudget(int $userId, Collection $budgets, ?Carbon $from, ?Carbon $to): array
     {
+        $budgetIds = $budgets->pluck('id')->all();
+
+        $query = Transaction::query()
+            ->where('user_id', $userId)
+            ->whereIn('budget_id', $budgetIds)
+            ->whereIn('type', ['expense', 'income']);
+
         if ($from || $to) {
-            $budgetIds = $budgets->pluck('id')->all();
-
-            $query = Transaction::query()
-                ->where('user_id', $userId)
-                ->where('type', 'expense')
-                ->whereIn('budget_id', $budgetIds);
-
             $this->applyDateRange($query, $from, $to);
-
-            $rows = $query
-                ->selectRaw('budget_id, SUM(amount) as total_spent')
-                ->groupBy('budget_id')
-                ->get();
-
-            $map = [];
-            foreach ($rows as $row) {
-                $budgetId = (int) ($row->budget_id ?? 0);
-                $map[$budgetId] = (float) ($row->total_spent ?? 0);
+        } else {
+            $minStart = $budgets->min('period_start');
+            $maxEnd = $budgets->max('period_end');
+            if ($minStart && $maxEnd) {
+                $this->applyDateRange($query, Carbon::parse($minStart)->startOfDay(), Carbon::parse($maxEnd)->endOfDay());
             }
-
-            return $map;
         }
 
-        $map = [];
-        foreach ($budgets as $budget) {
-            $start = Carbon::parse($budget->period_start)->startOfDay();
-            $end = Carbon::parse($budget->period_end)->endOfDay();
+        $rows = $query
+            ->selectRaw('budget_id, type, SUM(amount) as total_amount')
+            ->groupBy('budget_id')
+            ->groupBy('type')
+            ->get();
 
-            $map[$budget->id] = (float) Transaction::query()
-                ->where('user_id', $userId)
-                ->where('type', 'expense')
-                ->where('budget_id', $budget->id)
-                ->whereDate('transaction_date', '>=', $start->toDateString())
-                ->whereDate('transaction_date', '<=', $end->toDateString())
-                ->sum('amount');
+        $map = [];
+        foreach ($budgetIds as $budgetId) {
+            $map[(int) $budgetId] = ['expense' => 0.0, 'income' => 0.0];
+        }
+
+        foreach ($rows as $row) {
+            $budgetId = (int) ($row->budget_id ?? 0);
+            $type = (string) ($row->type ?? '');
+            if (! isset($map[$budgetId]) || ! in_array($type, ['expense', 'income'], true)) {
+                continue;
+            }
+
+            $map[$budgetId][$type] = (float) ($row->total_amount ?? 0);
         }
 
         return $map;

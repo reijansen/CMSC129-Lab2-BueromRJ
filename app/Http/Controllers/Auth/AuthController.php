@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\DefaultCategoryService;
 use App\Services\SupabaseAuthService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use PDOException;
 use RuntimeException;
 
 class AuthController extends Controller
@@ -44,7 +46,13 @@ class AuthController extends Controller
             ]);
         }
 
-        $this->persistSession($request, $session);
+        try {
+            $this->persistSession($request, $session);
+        } catch (RuntimeException $exception) {
+            return back()->withInput()->withErrors([
+                'email' => $exception->getMessage(),
+            ]);
+        }
 
         return redirect()->route('dashboard');
     }
@@ -84,7 +92,13 @@ class AuthController extends Controller
             }
         }
 
-        $this->persistSession($request, $response, $credentials['name']);
+        try {
+            $this->persistSession($request, $response, $credentials['name']);
+        } catch (RuntimeException $exception) {
+            return back()->withInput()->withErrors([
+                'email' => $exception->getMessage(),
+            ]);
+        }
 
         return redirect()->route('dashboard');
     }
@@ -135,14 +149,22 @@ class AuthController extends Controller
         $supabaseUserId = (string) ($supabaseUser['id'] ?? '');
         $email = (string) ($supabaseUser['email'] ?? '');
 
-        $localUser = User::updateOrCreate(
-            ['supabase_user_id' => $supabaseUserId],
-            [
-                'name' => $name ?? Str::before($email, '@') ?: 'Supabase User',
-                'email' => $email,
-                'password' => Hash::make(Str::random(40)),
-            ]
-        );
+        try {
+            $localUser = User::updateOrCreate(
+                ['supabase_user_id' => $supabaseUserId],
+                [
+                    'name' => $name ?? Str::before($email, '@') ?: 'Supabase User',
+                    'email' => $email,
+                    'password' => Hash::make(Str::random(40)),
+                ]
+            );
+        } catch (QueryException|PDOException $exception) {
+            throw new RuntimeException(
+                'Database is unavailable. Check your Supabase DB host/port/username settings in .env and try again.',
+                0,
+                $exception
+            );
+        }
 
         $this->defaultCategoryService->seedIfEmpty($localUser);
 

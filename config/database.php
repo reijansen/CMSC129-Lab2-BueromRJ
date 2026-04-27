@@ -97,6 +97,8 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'connect_timeout' => (int) env('DB_CONNECT_TIMEOUT_SECONDS', 5),
+            'application_name' => env('DB_APPLICATION_NAME', env('APP_NAME', 'Laravel')),
         ],
 
         'sqlsrv' => [
