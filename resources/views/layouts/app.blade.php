@@ -20,10 +20,7 @@
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-800">
     @php
-        $headerUser = null;
-        if (session()->has('app_user_id')) {
-            $headerUser = \App\Models\User::query()->find((int) session('app_user_id'));
-        }
+        $headerUser = auth()->user();
     @endphp
     <header class="sticky top-0 z-50 border-b border-emerald-100 bg-white/95 backdrop-blur">
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-6 py-4">

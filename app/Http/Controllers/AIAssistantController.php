@@ -22,8 +22,8 @@ class AIAssistantController extends Controller
             'message' => ['required', 'string', 'max:2000'],
         ]);
 
-        $userId = (int) ($request->attributes->get('app_user_id') ?? 0);
-        if ($userId <= 0) {
+        $userId = auth()->id();
+        if (! $userId) {
             return response()->json([
                 'error' => 'Unauthenticated.',
             ], 401);
@@ -65,8 +65,8 @@ class AIAssistantController extends Controller
 
     public function confirm(Request $request): JsonResponse
     {
-        $userId = (int) ($request->attributes->get('app_user_id') ?? 0);
-        if ($userId <= 0) {
+        $userId = auth()->id();
+        if (! $userId) {
             return response()->json([
                 'error' => 'Unauthenticated.',
             ], 401);
@@ -108,8 +108,8 @@ class AIAssistantController extends Controller
 
     public function cancel(Request $request): JsonResponse
     {
-        $userId = (int) ($request->attributes->get('app_user_id') ?? 0);
-        if ($userId <= 0) {
+        $userId = auth()->id();
+        if (! $userId) {
             return response()->json([
                 'error' => 'Unauthenticated.',
             ], 401);

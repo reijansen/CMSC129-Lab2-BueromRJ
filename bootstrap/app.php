@@ -14,10 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias([
-            'supabase.auth' => \App\Http\Middleware\EnsureSupabaseAuthenticated::class,
-            'supabase.guest' => \App\Http\Middleware\EnsureSupabaseGuest::class,
-        ]);
+        // Using Laravel's built-in auth middleware (local authentication)
+        // $middleware->alias([
+        //     'supabase.auth' => \App\Http\Middleware\EnsureSupabaseAuthenticated::class,
+        //     'supabase.guest' => \App\Http\Middleware\EnsureSupabaseGuest::class,
+        // ]);
 
         if (env('APP_ENV') === 'local') {
             $middleware->validateCsrfTokens([

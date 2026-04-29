@@ -8,7 +8,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'supabase.guest'])->group(function () {
+Route::middleware(['web', 'guest'])->group(function () {
     Route::view('/', 'welcome')->name('landing');
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
@@ -18,7 +18,7 @@ Route::middleware(['web', 'supabase.guest'])->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'sendForgotPassword'])->name('password.email');
 });
 
-Route::middleware(['web', 'supabase.auth'])->group(function () {
+Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
