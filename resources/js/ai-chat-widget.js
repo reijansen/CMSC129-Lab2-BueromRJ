@@ -31,16 +31,35 @@ const renderMessage = (container, message, index = 0) => {
     wrapper.setAttribute('data-message-index', index);
 
     const bubbleContainer = document.createElement('div');
-    bubbleContainer.className = 'flex flex-col gap-1 max-w-[85%]';
+    bubbleContainer.className = 'flex flex-col gap-1.5 max-w-[85%]';
 
     const bubble = document.createElement('div');
     bubble.className = role === 'user'
         ? 'rounded-2xl rounded-tr-none bg-gradient-to-br from-emerald-500 to-emerald-600 px-4 py-3 text-sm leading-relaxed text-white shadow-sm'
         : 'rounded-2xl rounded-tl-none bg-slate-100 px-4 py-3 text-sm leading-relaxed text-slate-800 shadow-sm';
 
-    bubble.textContent = String(content);
-    bubble.style.wordWrap = 'break-word';
-    bubble.style.overflowWrap = 'break-word';
+    // Create content with proper formatting
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'whitespace-pre-wrap break-words';
+
+    // Split content by line breaks and format properly
+    const lines = String(content).split('\n').filter(line => line.trim() !== '' || String(content).includes('\n\n'));
+
+    lines.forEach((line, idx) => {
+        if (line.trim() !== '') {
+            const p = document.createElement('p');
+            p.textContent = line;
+            p.className = idx > 0 ? 'mt-2' : '';
+            contentDiv.appendChild(p);
+        }
+    });
+
+    // If no formatted content, just use the raw content
+    if (contentDiv.children.length === 0) {
+        contentDiv.textContent = String(content);
+    }
+
+    bubble.appendChild(contentDiv);
 
     const timestamp = document.createElement('span');
     timestamp.className = `text-xs ${role === 'user' ? 'text-right text-emerald-600' : 'text-left text-slate-500'}`;

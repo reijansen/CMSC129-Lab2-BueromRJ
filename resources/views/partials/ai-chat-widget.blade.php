@@ -13,7 +13,7 @@
     </button>
 
     <!-- Chat Panel -->
-    <div class="mt-3 hidden w-[min(92vw,420px)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 animate-in fade-in slide-in-from-bottom-4 duration-300"
+    <div class="mt-3 hidden w-[min(92vw,420px)] max-h-[calc(100vh-120px)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 animate-in fade-in slide-in-from-bottom-4 duration-300"
         role="dialog"
         aria-label="Finko AI Assistant"
         aria-hidden="true"
@@ -90,7 +90,7 @@
         </div>
 
         <!-- Messages Container -->
-        <div class="flex flex-1 flex-col overflow-y-auto px-4 py-4 space-y-3 min-h-0" data-ai-chat-messages role="log" aria-live="polite" aria-label="Chat messages"></div>
+        <div class="flex flex-1 flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 px-4 py-4 space-y-4 min-h-0" data-ai-chat-messages role="log" aria-live="polite" aria-label="Chat messages"></div>
 
         <!-- Empty State -->
         <div class="flex flex-col items-center justify-center px-4 py-8 text-center" data-ai-chat-empty>
