@@ -128,7 +128,7 @@
                         </svg>
                         <span class="truncate lg:hidden" data-drawer-label>Profile</span>
                     </a>
-                    @if (session()->has('app_user_id'))
+                    @if (auth()->check())
                         <form action="{{ route('logout') }}" method="post" class="mt-1"
                             data-confirm-title="Log out"
                             data-confirm-message="Are you sure you want to log out?">

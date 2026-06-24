@@ -250,7 +250,8 @@ class AIAssistantService
             ['role' => 'user', 'content' => $userMessage],
         ];
 
-        $routerModel = (string) config('ai.ollama.router_model', config('ai.ollama.model'));
+        $provider = (string) config('ai.provider', 'gemini');
+        $routerModel = (string) config("ai.{$provider}.router_model", config("ai.{$provider}.model"));
         $result = $this->aiService->chat($messages, $routerModel);
         $content = (string) ($result['content'] ?? '');
 
@@ -907,6 +908,15 @@ class AIAssistantService
                 ->value('id');
         }
 
+        if (! $categoryId) {
+            $list = $this->formatCategoryChoices($userId, 8);
+
+            return [
+                'mode' => 'reply',
+                'reply' => "I can create that budget, but I need a category. Tell me the category name or id.\n\nYour categories:\n{$list}",
+            ];
+        }
+
         $payload = [
             'category_id' => $categoryId,
             'title' => $data['title'] ?? null,
@@ -998,6 +1008,15 @@ class AIAssistantService
             'notes' => $data['notes'] ?? null,
         ];
 
+        if (! $payload['category_id']) {
+            $list = $this->formatCategoryChoices($userId, 8);
+
+            return [
+                'mode' => 'reply',
+                'reply' => "I can add that transaction, but I need a category (name or id).\n\nYour categories:\n{$list}",
+            ];
+        }
+
         $categoryType = null;
         if ($payload['category_id']) {
             $categoryType = Category::query()
@@ -1042,9 +1061,11 @@ class AIAssistantService
             ->exists();
 
         if (! $categoryExists) {
+            $list = $this->formatCategoryChoices($userId, 8);
+
             return [
                 'mode' => 'reply',
-                'reply' => 'I could not create the transaction: category does not exist.',
+                'reply' => "I could not create the transaction: category does not exist.\n\nYour categories:\n{$list}",
             ];
         }
 
@@ -1083,5 +1104,20 @@ class AIAssistantService
                 'last_entity_id' => (int) $transaction->id,
             ],
         ];
+    }
+
+    private function formatCategoryChoices(int $userId, int $limit): string
+    {
+        $items = Category::query()
+            ->where('user_id', $userId)
+            ->orderBy('name')
+            ->limit(max(1, min(20, $limit)))
+            ->get(['id', 'name', 'type']);
+
+        if ($items->count() === 0) {
+            return '- (no categories yet — you can say: "Create a category named Food type expense")';
+        }
+
+        return $items->map(fn (Category $c): string => "- #{$c->id}: {$c->name} ({$c->type})")->implode("\n");
     }
 }

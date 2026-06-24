@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\AIConfigurationException;
 use App\Services\AIInquiryService;
 use App\Services\AIContextState;
 use Illuminate\Http\JsonResponse;
@@ -43,6 +44,10 @@ class AIChatController extends Controller
             $result = $this->aiInquiryService->replyWithContext($userId, $validated['message'], $history, $contextState);
             $request->session()->put(AIContextState::SESSION_KEY, AIContextState::merge($contextState, $result['context_update'] ?? []));
             $reply = (string) ($result['reply'] ?? '');
+        } catch (AIConfigurationException) {
+            return response()->json([
+                'error' => 'AI is not configured. Please set GEMINI_API_KEY (or switch AI_PROVIDER).',
+            ], 400);
         } catch (RuntimeException) {
             return response()->json([
                 'error' => 'AI service is currently unavailable. Please try again.',
@@ -64,6 +69,22 @@ class AIChatController extends Controller
 
         return response()->json([
             'reply' => $reply,
+            'history' => $history,
+        ]);
+    }
+
+    public function history(Request $request): JsonResponse
+    {
+        $userId = auth()->id();
+        if (! $userId) {
+            return response()->json([
+                'error' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $history = $this->loadHistory($request);
+
+        return response()->json([
             'history' => $history,
         ]);
     }

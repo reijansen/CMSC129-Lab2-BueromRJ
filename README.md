@@ -98,21 +98,20 @@ This project includes **two** AI modes integrated into the main app UI:
    php artisan serve
    ```
 
-## AI Setup (Ollama)
+## AI Setup (Gemini API)
 
-This project is prepared for CMSC 129 Lab 3 AI integration using a backend-only Ollama connection (no direct AI calls from the frontend).
+This project is prepared for CMSC 129 Lab 3 AI integration using a backend-only Gemini connection (no direct AI calls from the frontend).
 
-1. Install Ollama: https://ollama.com
-2. Start Ollama (it runs on `http://127.0.0.1:11434` by default).
-3. Pull the default model:
-   ```bash
-   ollama pull qwen2.5:3b
-   ```
-4. Configure `.env` (do not commit it):
-   - `AI_PROVIDER=ollama`
-   - `OLLAMA_BASE_URL=http://127.0.0.1:11434`
-   - `OLLAMA_MODEL=qwen2.5:3b`
+1. Create a Google AI Studio API key.
+2. Configure `.env` (do not commit it):
+   - `AI_PROVIDER=gemini`
+   - `GEMINI_API_KEY=...`
+   - `GEMINI_MODEL=gemini-1.5-flash`
+   - `GEMINI_FALLBACK_MODELS=gemini-3.1-flash-lite,gemini-2.5-flash-lite` (optional; no brackets, no spaces unless quoted)
    - `AI_REQUEST_TIMEOUT_SECONDS=30`
+
+Optional local fallback (Ollama):
+- Set `AI_PROVIDER=ollama` and configure `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `OLLAMA_ROUTER_MODEL`.
 
 ### Required Environment Variables
 
@@ -120,9 +119,12 @@ See `.env.example` for the complete list. Key ones for Lab 3:
 
 - AI:
   - `AI_PROVIDER`
-  - `OLLAMA_BASE_URL`
-  - `OLLAMA_MODEL`
-  - `OLLAMA_ROUTER_MODEL`
+  - `GEMINI_API_KEY`
+  - `GEMINI_MODEL`
+  - `GEMINI_ROUTER_MODEL`
+  - `OLLAMA_BASE_URL` (optional)
+  - `OLLAMA_MODEL` (optional)
+  - `OLLAMA_ROUTER_MODEL` (optional)
   - `AI_REQUEST_TIMEOUT_SECONDS`
 - Database (Supabase/Postgres):
   - `DB_CONNECTION=pgsql`

@@ -151,7 +151,8 @@ class AIInquiryService
             [['role' => 'user', 'content' => $userMessage]]
         );
 
-        $routerModel = (string) config('ai.ollama.router_model', config('ai.ollama.model'));
+        $provider = (string) config('ai.provider', 'gemini');
+        $routerModel = (string) config("ai.{$provider}.router_model", config("ai.{$provider}.model"));
         $result = $this->aiService->chat($messages, $routerModel);
         $content = (string) ($result['content'] ?? '');
 
@@ -171,23 +172,33 @@ class AIInquiryService
     private function intentSystemPrompt(): string
     {
         return implode("\n", [
-            'You are an intent classifier for a student finance tracker app called Finko.',
+            'You are an intent classifier for Finko, a student finance tracker app.',
+            'Understand the user\'s intent from their message and classify it accurately.',
             'Return STRICT JSON only. No markdown, no code fences, no extra text.',
-            'Choose one intent and set filters. If unclear, use intent "clarify" and add "clarify_question".',
-            'Valid intents:',
-            '- list_categories',
-            '- count_categories',
-            '- list_budgets',
-            '- budget_status',
-            '- list_transactions',
-            '- sum_expenses',
-            '- sum_income',
-            '- top_spending_categories',
-            '- max_expense',
-            '- filter_transactions',
-            'Output schema:',
+            '',
+            'CONTEXT AWARENESS:',
+            '- If the user refers to "it", "that", "them", or "they", try to infer from conversation history.',
+            '- For follow-ups like "which ones are under 100?", use filter_transactions with resolved context.',
+            '- Remember previous queries in the conversation history.',
+            '',
+            'VALID INTENTS:',
+            '- list_categories: Show all categories',
+            '- count_categories: Count categories by type',
+            '- list_budgets: Show active/recent budgets',
+            '- budget_status: Show budget details and status',
+            '- list_transactions: Show transactions (default recent 10)',
+            '- sum_expenses: Total expenses for a period',
+            '- sum_income: Total income for a period',
+            '- top_spending_categories: Rank categories by spending',
+            '- max_expense: Find largest expense',
+            '- filter_transactions: Filter transactions by multiple criteria',
+            '',
+            'If unclear or missing critical info, use "clarify" intent.',
+            'For date-dependent queries without dates, ask for clarification.',
+            '',
+            'OUTPUT SCHEMA:',
             '{',
-            '  "intent": "...",',
+            '  "intent": "intent_name|clarify",',
             '  "filters": {',
             '    "date_from": "YYYY-MM-DD|null",',
             '    "date_to": "YYYY-MM-DD|null",',
@@ -196,7 +207,8 @@ class AIInquiryService
             '    "budget_title": "string|null",',
             '    "payment_method": "string|null",',
             '    "limit": 10',
-            '  }',
+            '  },',
+            '  "clarify_question": "helpful question if intent is clarify"',
             '}',
         ]);
     }
@@ -381,7 +393,7 @@ class AIInquiryService
 
         if ($categories->isEmpty()) {
             return [
-                'reply' => "You don't have any categories yet.",
+                'reply' => "📭 You don't have any categories yet.\n\nGet started by creating your first category for tracking expenses or income!",
                 'context_update' => [
                     'last_list' => null,
                     'last_entity_type' => null,
@@ -391,19 +403,29 @@ class AIInquiryService
         }
 
         $slice = $categories->take(15)->values();
+        $expenseCount = $slice->where('type', 'expense')->count();
+        $incomeCount = $slice->where('type', 'income')->count();
+        $bothCount = $slice->where('type', 'both')->count();
+
         $lines = $slice->map(function (Category $c, int $index): string {
             $i = $index + 1;
+            $icon = match($c->type) {
+                'expense' => '💸',
+                'income' => '💰',
+                'both' => '🔄',
+                default => '📌'
+            };
 
-            return "{$i}) #{$c->id} — {$c->name}\n"
-                . "   Type: {$c->type}";
+            return "{$i}. {$icon} {$c->name} [#{$c->id}]";
         })->all();
 
-        $extra = $categories->count() > 15 ? "\n(Showing 15 of {$categories->count()} categories.)" : '';
+        $extra = $categories->count() > 15 ? "\n\n_Showing 15 of {$categories->count()} categories_" : '';
+        $summary = "\n\n📊 Summary: {$expenseCount} expense, {$incomeCount} income, {$bothCount} both";
 
         $ids = $slice->pluck('id')->all();
 
         return [
-            'reply' => "Here are your categories:\n\n" . implode("\n\n", $lines) . $extra,
+            'reply' => "📁 Here are your categories:" . $summary . "\n\n" . implode("\n", $lines) . $extra,
             'context_update' => [
                 'last_list' => [
                     'resource' => 'category',
@@ -428,7 +450,7 @@ class AIInquiryService
 
         if ($total === 0) {
             return [
-                'reply' => "You don't have any categories yet.",
+                'reply' => "📭 You don't have any categories yet.\n\nGet started by creating your first category!",
                 'context_update' => [],
             ];
         }
@@ -438,10 +460,10 @@ class AIInquiryService
         $both = (int) ($counts['both'] ?? 0);
 
         return [
-            'reply' => "You have {$total} categories total.\n\n"
-                . "Expense: {$expense}\n"
-                . "Income: {$income}\n"
-                . "Both: {$both}",
+            'reply' => "📊 You have **{$total} categories** total:\n\n"
+                . "💸 Expense: {$expense}\n"
+                . "💰 Income: {$income}\n"
+                . "🔄 Both: {$both}",
             'context_update' => [],
         ];
     }
@@ -458,7 +480,7 @@ class AIInquiryService
 
         if ($budgets->isEmpty()) {
             return [
-                'reply' => "You don't have any budgets yet.",
+                'reply' => "📊 You don't have any budgets yet.\n\nStart tracking your spending by creating a budget!",
                 'context_update' => [],
             ];
         }
@@ -466,21 +488,23 @@ class AIInquiryService
         $lines = $budgets->values()->map(function (Budget $b, int $index): string {
             $i = $index + 1;
             $category = $b->category?->name ?? 'Uncategorized';
-            $start = Carbon::parse($b->period_start)->toDateString();
-            $end = Carbon::parse($b->period_end)->toDateString();
+            $start = Carbon::parse($b->period_start)->format('M d');
+            $end = Carbon::parse($b->period_end)->format('M d');
             $allocated = $this->formatMoney((float) $b->allocated_amount);
+            $statusIcon = match($b->status) {
+                'active' => '✅',
+                'exceeded' => '⚠️',
+                'completed' => '✔️',
+                default => '📌'
+            };
 
-            return "{$i}) #{$b->id} — {$b->title}\n"
-                . "   Category: {$category}\n"
-                . "   Allocated: {$allocated}\n"
-                . "   Period: {$start} to {$end}\n"
-                . "   Status: {$b->status}";
+            return "{$i}. {$statusIcon} {$b->title} [{$category}]\n   Allocated: {$allocated} • {$start} to {$end}";
         })->all();
 
         $ids = $budgets->pluck('id')->all();
 
         return [
-            'reply' => "Here are your latest budgets:\n\n" . implode("\n\n", $lines),
+            'reply' => "💰 Here are your latest budgets:\n\n" . implode("\n\n", $lines),
             'context_update' => [
                 'last_list' => [
                     'resource' => 'budget',
@@ -577,10 +601,10 @@ class AIInquiryService
 
         $range = $this->describeDateRange($from, $to);
         if ($type === 'expense') {
-            $suffix = $category ? " in category \"{$category->name}\"" : '';
+            $suffix = $category ? " in **{$category->name}**" : '';
 
             return [
-                'reply' => "Total expenses{$suffix}{$range}: {$formatted}",
+                'reply' => "💸 Total expenses{$suffix}{$range}:\n\n**{$formatted}**",
                 'context_update' => [
                     'last_date_range' => $this->dateRangeForContext($from, $to),
                 ],
@@ -588,7 +612,7 @@ class AIInquiryService
         }
 
         return [
-            'reply' => "Total income{$range}: {$formatted}",
+            'reply' => "💰 Total income{$range}:\n\n**{$formatted}**",
             'context_update' => [
                 'last_date_range' => $this->dateRangeForContext($from, $to),
             ],
@@ -629,15 +653,22 @@ class AIInquiryService
         }
 
         $range = $this->describeDateRange($from, $to);
-        $lines = $rows->map(function ($row): string {
+        $lines = $rows->map(function ($row, $idx): string {
             $name = (string) $row->category_name;
             $total = $this->formatMoney((float) $row->total_spent);
+            $rank = $idx + 1;
+            $medal = match($rank) {
+                1 => '🥇',
+                2 => '🥈',
+                3 => '🥉',
+                default => '📌'
+            };
 
-            return "- {$name}: {$total}";
+            return "{$rank}. {$medal} {$name} — {$total}";
         })->all();
 
         return [
-            'reply' => "Top spending categories{$range}:\n" . implode("\n", $lines),
+            'reply' => "📊 Top spending categories{$range}:\n\n" . implode("\n", $lines),
             'context_update' => [
                 'last_date_range' => $this->dateRangeForContext($from, $to),
             ],
@@ -675,13 +706,13 @@ class AIInquiryService
         }
 
         $range = $this->describeDateRange($from, $to);
-        $date = Carbon::parse($transaction->transaction_date)->toDateString();
+        $date = Carbon::parse($transaction->transaction_date)->format('M d, Y');
         $amount = $this->formatMoney((float) $transaction->amount);
-        $category = $transaction->category?->name ?? 'Unknown Category';
+        $category = $transaction->category?->name ?? 'Uncategorized';
 
         return [
-            'reply' => "Maximum expense{$range}: {$amount}\n\n"
-                . "Transaction: #{$transaction->id} — {$transaction->title}\n"
+            'reply' => "💸 Your largest expense{$range}:\n\n"
+                . "**{$transaction->title}** — **{$amount}**\n"
                 . "Category: {$category}\n"
                 . "Date: {$date}",
             'context_update' => [
@@ -933,12 +964,12 @@ class AIInquiryService
 
     private function defaultClarify(): string
     {
-        return 'Do you mean budgets, transactions, or categories? If you want totals, please include a date range (e.g., "this week", "last month", or "2026-04-01 to 2026-04-26").';
+        return "I'm not sure what you're looking for. 🤔\n\nTry asking about:\n• Your **budgets** (e.g., \"Show my active budgets\")\n• Your **transactions** (e.g., \"List transactions this week\")\n• Your **categories** (e.g., \"What categories do I have?\")\n• Your **spending trends** (e.g., \"Top spending categories this month\")";
     }
 
     private function needDateRange(string $topic): string
     {
-        return "What date range should I use for {$topic}? (e.g., \"this week\", \"last month\", or \"2026-04-01 to 2026-04-26\")";
+        return "📅 For {$topic} analysis, I need a time period. Please specify:\n• \"this week\", \"last week\", \"this month\", \"last month\"\n• Or specific dates: \"from April 1 to April 26\"";
     }
 
     /**
@@ -1022,19 +1053,15 @@ class AIInquiryService
     {
         $lines = $transactions->values()->map(function (Transaction $t, int $index): string {
             $i = $index + 1;
-            $date = Carbon::parse($t->transaction_date)->toDateString();
+            $date = Carbon::parse($t->transaction_date)->format('M d');
             $amount = $this->formatMoney((float) $t->amount);
-            $category = $t->category?->name ?? 'Unknown Category';
-            $budget = $t->budget?->title ?? 'No Budget';
+            $category = $t->category?->name ?? 'Uncategorized';
+            $typeIcon = $t->type === 'expense' ? '💸' : '💰';
 
-            return "{$i}) #{$t->id} — {$date} — {$t->type}\n"
-                . "   Title: {$t->title}\n"
-                . "   Amount: {$amount}\n"
-                . "   Category: {$category}\n"
-                . "   Budget: {$budget}";
+            return "{$i}. {$typeIcon} {$t->title} • {$amount}\n   {$category} • {$date}";
         })->all();
 
-        return "Here are the transactions I found:\n\n" . implode("\n\n", $lines);
+        return "💳 Here are the transactions I found:\n\n" . implode("\n\n", $lines);
     }
 
     private function formatMoney(float $amount): string

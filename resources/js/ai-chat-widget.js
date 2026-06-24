@@ -18,6 +18,15 @@ const formatTime = (date) => {
     return `${hours}:${minutes}`;
 };
 
+const parseMarkdownLike = (text) => {
+    let result = text;
+    // Bold: **text** -> <strong>text</strong>
+    result = result.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Italic: *text* -> <em>text</em> (but not **)
+    result = result.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+    return result;
+};
+
 const renderMessage = (container, message, index = 0) => {
     const role = message?.role;
     const content = message?.content ?? '';
@@ -40,23 +49,50 @@ const renderMessage = (container, message, index = 0) => {
 
     // Create content with proper formatting
     const contentDiv = document.createElement('div');
-    contentDiv.className = 'whitespace-pre-wrap break-words';
+    contentDiv.className = 'whitespace-pre-wrap break-words prose prose-sm max-w-none';
 
-    // Split content by line breaks and format properly
-    const lines = String(content).split('\n').filter(line => line.trim() !== '' || String(content).includes('\n\n'));
+    // Split content by line breaks
+    const rawLines = String(content).split('\n');
+    let processedLines = [];
 
-    lines.forEach((line, idx) => {
+    rawLines.forEach((line) => {
         if (line.trim() !== '') {
-            const p = document.createElement('p');
-            p.textContent = line;
-            p.className = idx > 0 ? 'mt-2' : '';
-            contentDiv.appendChild(p);
+            processedLines.push(line);
+        } else if (processedLines.length > 0 && processedLines[processedLines.length - 1] !== '') {
+            // Keep single empty line for paragraph breaks
+            processedLines.push('');
         }
     });
 
-    // If no formatted content, just use the raw content
+    let currentParagraph = [];
+    processedLines.forEach((line, idx) => {
+        if (line.trim() === '') {
+            if (currentParagraph.length > 0) {
+                const p = document.createElement('p');
+                const htmlContent = parseMarkdownLike(currentParagraph.join('\n'));
+                p.innerHTML = htmlContent;
+                p.className = idx > 0 ? 'mt-2 mb-2' : 'mb-2';
+                contentDiv.appendChild(p);
+                currentParagraph = [];
+            }
+        } else {
+            currentParagraph.push(line);
+        }
+    });
+
+    // Add remaining paragraph
+    if (currentParagraph.length > 0) {
+        const p = document.createElement('p');
+        const htmlContent = parseMarkdownLike(currentParagraph.join('\n'));
+        p.innerHTML = htmlContent;
+        contentDiv.appendChild(p);
+    }
+
+    // Fallback if no paragraphs created
     if (contentDiv.children.length === 0) {
-        contentDiv.textContent = String(content);
+        const p = document.createElement('p');
+        p.innerHTML = parseMarkdownLike(String(content));
+        contentDiv.appendChild(p);
     }
 
     bubble.appendChild(contentDiv);
@@ -98,11 +134,16 @@ const removeTypingIndicator = (container) => {
     }
 };
 
-const renderHistory = (container, history) => {
+const scrollToBottom = (scrollContainer) => {
+    if (!scrollContainer) return;
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+};
+
+const renderHistory = (container, history, scrollContainer = null) => {
     container.innerHTML = '';
     removeTypingIndicator(container);
     (Array.isArray(history) ? history : []).forEach((msg, idx) => renderMessage(container, msg, idx));
-    container.scrollTop = container.scrollHeight;
+    scrollToBottom(scrollContainer || container);
 };
 
 const setVisible = (element, visible) => {
@@ -129,19 +170,37 @@ const parseErrorMessage = async (response) => {
         // ignore
     }
 
-    if (response.status === 401) return 'Session expired. Please log in again.';
-    if (response.status === 422) return 'Please type a message.';
-    if (response.status === 502) return 'AI service is unavailable. Please try again later.';
-    return 'Something went wrong. Please try again.';
+    if (response.status === 401) return 'Your session expired. Please log in again.';
+    if (response.status === 422) return 'Please type a message before sending.';
+    if (response.status === 502) return 'AI service is temporarily unavailable. Please try again in a moment.';
+    if (response.status === 429) return 'Too many requests. Please wait a moment before trying again.';
+    if (response.status >= 500) return 'Server error. Please try again later.';
+    return 'Something went wrong. Please try again or refresh the page.';
 };
 
 const shouldRefreshAfterResponse = (data) => Boolean(data?.created || data?.executed);
 
 const DEFAULT_SUGGESTIONS = [
-    { text: 'Show my budgets', icon: '💰' },
-    { text: 'Recent transactions', icon: '📊' },
-    { text: 'Total expenses', icon: '💸' },
+    { text: 'What budgets do I have?', icon: '💰' },
+    { text: 'Show my latest transactions', icon: '📊' },
+    { text: 'Total spending this month', icon: '💸' },
+    { text: 'Top spending categories', icon: '🥇' },
 ];
+
+const CONTEXTUAL_SUGGESTIONS = {
+    chatbot: [
+        { text: 'What categories do I have?', icon: '📁' },
+        { text: 'How much did I spend this week?', icon: '📈' },
+        { text: 'What\'s my largest expense?', icon: '💥' },
+        { text: 'List my active budgets', icon: '✅' },
+    ],
+    assistant: [
+        { text: 'Create a new budget', icon: '✏️' },
+        { text: 'Add a new transaction', icon: '➕' },
+        { text: 'Update a budget amount', icon: '🔄' },
+        { text: 'Create a new category', icon: '🆕' },
+    ],
+};
 
 export const setupAIChatWidget = () => {
     const root = document.querySelector('[data-ai-chat-widget]');
@@ -155,6 +214,7 @@ export const setupAIChatWidget = () => {
     const input = root.querySelector('[data-ai-chat-input]');
     const send = root.querySelector('[data-ai-chat-send]');
     const messagesEl = root.querySelector('[data-ai-chat-messages]');
+    const scrollEl = root.querySelector('[data-ai-chat-scroll]');
     const errorEl = root.querySelector('[data-ai-chat-error]');
     const errorTextEl = errorEl?.querySelector('span');
     const loadingEl = root.querySelector('[data-ai-chat-loading]');
@@ -164,7 +224,7 @@ export const setupAIChatWidget = () => {
     const modeRoot = root.querySelector('[data-ai-chat-mode]');
     const modeButtons = root.querySelectorAll('[data-ai-chat-mode-btn]');
 
-    if (!toggle || !panel || !form || !input || !messagesEl) return;
+    if (!toggle || !panel || !form || !input || !messagesEl || !scrollEl) return;
 
     let isOpen = false;
     let lastHistory = [];
@@ -173,19 +233,94 @@ export const setupAIChatWidget = () => {
     let isLoading = false;
 
     const MODE_KEY = 'finko-ai-mode';
+    let lastModeNotice = null;
+
+    const setEmptyStateVisible = (visible) => {
+        setVisible(emptyStateEl, visible);
+    };
+
+    const renderModeNotice = (nextMode) => {
+        if (!messagesEl || !scrollEl) return;
+
+        // Hide empty state once user starts interacting with modes.
+        setEmptyStateVisible(false);
+
+        lastModeNotice?.remove();
+        const notice = document.createElement('div');
+        notice.className =
+            'mx-auto my-2 w-fit max-w-[90%] rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-sm';
+        notice.textContent =
+            nextMode === 'chatbot'
+                ? 'Switched to Inquiry Mode (read-only)'
+                : 'Switched to Assistant Mode (CRUD with confirmation)';
+
+        messagesEl.appendChild(notice);
+        lastModeNotice = notice;
+        scrollToBottom(scrollEl);
+    };
+
+    // Force wheel/trackpad scrolling inside the widget to avoid the page stealing the scroll.
+    // Some browser/layout combinations with nested flex + max-height can be finicky.
+    scrollEl.addEventListener(
+        'wheel',
+        (e) => {
+            if (scrollEl.scrollHeight <= scrollEl.clientHeight) return;
+
+            const next = scrollEl.scrollTop + e.deltaY;
+            const maxTop = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
+            scrollEl.scrollTop = Math.max(0, Math.min(maxTop, next));
+            e.preventDefault();
+        },
+        { passive: false }
+    );
 
     const getModeEndpoint = () => (mode === 'chatbot' ? '/api/ai/chat' : '/api/ai/assistant');
+    const getHistoryEndpoint = () => '/api/ai/chat/history';
     const getResetEndpoint = () => '/api/ai/chat/reset';
+
+    let didHydrateHistory = false;
+    const hydrateHistory = async () => {
+        if (didHydrateHistory) return;
+        didHydrateHistory = true;
+
+        try {
+            const response = await fetch(getHistoryEndpoint(), {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+            });
+
+            if (!response.ok) {
+                // Don't block opening the widget if history fails to load.
+                return;
+            }
+
+            const data = await response.json();
+            lastHistory = Array.isArray(data?.history) ? data.history : [];
+            renderHistory(messagesEl, lastHistory, scrollEl);
+            setEmptyStateVisible(lastHistory.length === 0);
+            if (lastHistory.length === 0) {
+                renderSuggestions();
+            }
+        } catch {
+            // ignore
+        }
+    };
 
     const renderSuggestions = () => {
         if (!suggestionsEl) return;
         suggestionsEl.innerHTML = '';
 
-        DEFAULT_SUGGESTIONS.forEach((suggestion) => {
+        // Use contextual suggestions if there's no history, otherwise use default
+        const suggestions = lastHistory.length === 0
+            ? (CONTEXTUAL_SUGGESTIONS[mode] || DEFAULT_SUGGESTIONS)
+            : DEFAULT_SUGGESTIONS;
+
+        suggestions.forEach((suggestion) => {
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-medium text-slate-700 transition hover:bg-slate-50 hover:border-emerald-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300';
-            btn.innerHTML = `<span>${suggestion.icon}</span> ${escapeHtml(suggestion.text)}`;
+            btn.className = 'w-full rounded-md border border-emerald-200 bg-gradient-to-r from-emerald-50 to-emerald-50/50 px-2.5 py-1.5 text-left text-[11px] font-medium text-slate-700 transition hover:bg-emerald-100 hover:border-emerald-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 active:scale-95';
+            btn.innerHTML = `<span class="text-sm mr-1.5">${suggestion.icon}</span><span class="line-clamp-2 leading-tight">${escapeHtml(suggestion.text)}</span>`;
             btn.addEventListener('click', () => {
                 input.value = suggestion.text;
                 input.focus();
@@ -197,10 +332,9 @@ export const setupAIChatWidget = () => {
 
     const applyModeUi = () => {
         if (subtitleEl) {
-            subtitleEl.textContent =
-                mode === 'chatbot'
-                    ? '📖 Inquiry chatbot (read-only)'
-                    : '⚙️ CRUD assistant (create/update/delete + confirm)';
+            subtitleEl.innerHTML = mode === 'chatbot'
+                ? '📖 <strong>Inquiry Mode</strong> — Ask questions (read-only)'
+                : '⚙️ <strong>Assistant Mode</strong> — Create, update, delete (with confirmation)';
         }
 
         modeButtons.forEach((btn) => {
@@ -211,21 +345,31 @@ export const setupAIChatWidget = () => {
             btn.classList.toggle('shadow-sm', isActive);
             btn.classList.toggle('bg-white', !isActive);
             btn.classList.toggle('text-slate-700', !isActive);
+            btn.classList.toggle('border', !isActive);
+            btn.classList.toggle('border-slate-200', !isActive);
         });
     };
 
     const setMode = (next) => {
+        const prev = mode;
         mode = next === 'chatbot' ? 'chatbot' : 'assistant';
         localStorage.setItem(MODE_KEY, mode);
         clearPendingControls();
         applyModeUi();
+        if (prev !== mode) {
+            renderModeNotice(mode);
+        }
     };
 
     const showError = (message) => {
         if (!errorEl || !errorTextEl) return;
-        errorTextEl.textContent = message;
+        const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        errorTextEl.innerHTML = `<strong>Error:</strong> ${escapeHtml(message)}<br/><span class="text-xs opacity-75">at ${timestamp}</span>`;
         setVisible(errorEl, true);
         errorEl.setAttribute('role', 'alert');
+        setTimeout(() => {
+            if (errorEl) setVisible(errorEl, false);
+        }, 8000);
     };
 
     const clearError = () => setVisible(errorEl, false);
@@ -233,7 +377,7 @@ export const setupAIChatWidget = () => {
     const setLoading = (loading) => {
         isLoading = loading;
         setVisible(loadingEl, loading);
-        setVisible(emptyStateEl, !loading && lastHistory.length === 0);
+        setEmptyStateVisible(!loading && lastHistory.length === 0);
         input.disabled = loading;
         send && (send.disabled = loading);
         if (loading) {
@@ -248,9 +392,7 @@ export const setupAIChatWidget = () => {
         setPanelOpen(panel, true);
         toggle?.setAttribute('aria-expanded', 'true');
         setTimeout(() => input.focus(), 100);
-        if (lastHistory.length === 0) {
-            renderSuggestions();
-        }
+        hydrateHistory();
     };
 
     const closePanel = () => {
@@ -298,8 +440,8 @@ export const setupAIChatWidget = () => {
 
             const data = await response.json();
             lastHistory = Array.isArray(data?.history) ? data.history : [];
-            renderHistory(messagesEl, lastHistory);
-            setVisible(emptyStateEl, lastHistory.length === 0);
+            renderHistory(messagesEl, lastHistory, scrollEl);
+            setEmptyStateVisible(lastHistory.length === 0);
             if (lastHistory.length === 0) {
                 renderSuggestions();
             }
@@ -338,7 +480,7 @@ export const setupAIChatWidget = () => {
         container.appendChild(confirmBtn);
         messagesEl.appendChild(container);
         setTimeout(() => {
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            scrollToBottom(scrollEl);
         }, 0);
         pendingActionsContainer = container;
 
@@ -366,7 +508,7 @@ export const setupAIChatWidget = () => {
 
                 const data = await response.json();
                 lastHistory = Array.isArray(data?.history) ? data.history : lastHistory;
-                renderHistory(messagesEl, lastHistory);
+                renderHistory(messagesEl, lastHistory, scrollEl);
                 clearPendingControls();
 
                 if (shouldRefreshAfterResponse(data)) {
@@ -385,7 +527,7 @@ export const setupAIChatWidget = () => {
         event.preventDefault();
         clearError();
         clearPendingControls();
-        setVisible(emptyStateEl, false);
+        setEmptyStateVisible(false);
 
         const message = input.value.trim();
         if (!message) {
@@ -396,7 +538,7 @@ export const setupAIChatWidget = () => {
         input.value = '';
         input.style.minHeight = 'auto';
         lastHistory = [...lastHistory, { role: 'user', content: message }];
-        renderHistory(messagesEl, lastHistory);
+        renderHistory(messagesEl, lastHistory, scrollEl);
         setLoading(true);
 
         try {
@@ -424,7 +566,7 @@ export const setupAIChatWidget = () => {
             }
 
             removeTypingIndicator(messagesEl);
-            renderHistory(messagesEl, lastHistory);
+            renderHistory(messagesEl, lastHistory, scrollEl);
 
             if (mode === 'assistant' && data?.mode === 'propose') {
                 renderPendingControls();
@@ -451,6 +593,6 @@ export const setupAIChatWidget = () => {
     const storedMode = localStorage.getItem(MODE_KEY);
     setMode(storedMode === 'chatbot' ? 'chatbot' : 'assistant');
     setVisible(modeRoot, true);
-    setVisible(emptyStateEl, true);
+    setEmptyStateVisible(true);
     renderSuggestions();
 };

@@ -98,22 +98,52 @@
     }
 
     /* Custom scrollbar styles */
+    .scrollbar-thin {
+        scrollbar-width: thin;
+        scrollbar-color: #10b981 #f1f5f9;
+    }
+
     .scrollbar-thin::-webkit-scrollbar {
-        width: 6px;
+        width: 12px;
     }
 
     .scrollbar-thin::-webkit-scrollbar-track {
-        background: #f3f4f6;
-        border-radius: 10px;
+        background: #f1f5f9;
     }
 
     .scrollbar-thin::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 10px;
+        background: #10b981;
+        border-radius: 6px;
     }
 
     .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #059669;
+    }
+
+    /* Keep space reserved for scrollbars in the AI chat to avoid layout shift. */
+    [data-ai-chat-scroll] {
+        scrollbar-gutter: stable both-edges;
+    }
+
+    /* Always show a scrollbar in the chat conversation area (even when content is short). */
+    [data-ai-chat-scroll]::-webkit-scrollbar-thumb {
+        min-height: 24px;
+    }
+
+    html.dark .scrollbar-thin {
+        scrollbar-color: #10b981 #1e293b;
+    }
+
+    html.dark .scrollbar-thin::-webkit-scrollbar-track {
+        background: #1e293b;
+    }
+
+    html.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: #10b981;
+    }
+
+    html.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: #059669;
     }
 
     html.dark {

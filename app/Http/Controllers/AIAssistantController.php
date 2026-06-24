@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\AIConfigurationException;
 use App\Services\AIAssistantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,6 +39,10 @@ class AIAssistantController extends Controller
 
         try {
             $result = $this->assistantService->handle($userId, $validated['message'], $history, $request);
+        } catch (AIConfigurationException) {
+            return response()->json([
+                'error' => 'AI is not configured. Please set GEMINI_API_KEY (or switch AI_PROVIDER).',
+            ], 400);
         } catch (RuntimeException) {
             return response()->json([
                 'error' => 'AI service is currently unavailable. Please try again.',
@@ -81,6 +86,10 @@ class AIAssistantController extends Controller
 
         try {
             $result = $this->assistantService->confirmPending($userId, $request);
+        } catch (AIConfigurationException) {
+            return response()->json([
+                'error' => 'AI is not configured. Please set GEMINI_API_KEY (or switch AI_PROVIDER).',
+            ], 400);
         } catch (RuntimeException) {
             return response()->json([
                 'error' => 'AI service is currently unavailable. Please try again.',

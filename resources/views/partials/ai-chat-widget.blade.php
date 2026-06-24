@@ -13,7 +13,7 @@
     </button>
 
     <!-- Chat Panel -->
-    <div class="mt-3 hidden w-[min(92vw,420px)] max-h-[calc(100vh-120px)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 animate-in fade-in slide-in-from-bottom-4 duration-300"
+    <div class="mt-3 hidden w-[min(92vw,420px)] h-[min(70vh,560px)] max-h-[calc(100vh-120px)] flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 animate-in fade-in slide-in-from-bottom-4 duration-300 min-h-0"
         role="dialog"
         aria-label="Finko AI Assistant"
         aria-hidden="true"
@@ -21,7 +21,7 @@
         data-ai-chat-panel>
 
         <!-- Header -->
-        <div class="flex items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-4 py-3.5">
+        <div class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-4 py-3.5">
             <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
                     <div class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true"></div>
@@ -85,32 +85,35 @@
                     <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce" style="animation-delay: 150ms;"></span>
                     <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce" style="animation-delay: 300ms;"></span>
                 </div>
-                <span>Thinking…</span>
+                <span>Processing your request…</span>
             </div>
         </div>
 
+        <!-- Conversation Scroll Area (single scroll container) -->
+        <div class="flex flex-1 flex-col min-h-0 overflow-y-scroll overscroll-contain touch-pan-y scrollbar-thin px-4 py-4" data-ai-chat-scroll style="-webkit-overflow-scrolling: touch;">
         <!-- Messages Container -->
-        <div class="flex flex-1 flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 px-4 py-4 space-y-4 min-h-0" data-ai-chat-messages role="log" aria-live="polite" aria-label="Chat messages"></div>
+        <div class="flex flex-col space-y-4" data-ai-chat-messages role="log" aria-live="polite" aria-label="Chat messages"></div>
 
         <!-- Empty State -->
-        <div class="flex flex-col items-center justify-center px-4 py-8 text-center" data-ai-chat-empty>
-            <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
+        <div class="flex flex-col items-center justify-center py-8 text-center" data-ai-chat-empty>
+            <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-100 to-emerald-50">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
             </div>
-            <p class="text-sm font-semibold text-slate-900">Ask me anything!</p>
-            <p class="mt-1 text-xs text-slate-600">Get insights about your budgets, transactions, and more.</p>
+            <p class="text-sm font-semibold text-slate-900">Welcome to Finko AI! 🤖</p>
+            <p class="mt-1 text-xs text-slate-600">I can help you track budgets, analyze spending, and manage transactions.</p>
             <div class="mt-4 flex flex-col gap-2 w-full" data-ai-chat-suggestions>
                 <!-- Suggestions will be added here -->
             </div>
         </div>
+        </div>
 
         <!-- Input Form -->
-        <form class="flex items-center gap-2 border-t border-slate-100 bg-gradient-to-t from-white to-slate-50 px-4 py-3" data-ai-chat-form>
+        <form class="sticky bottom-0 z-10 flex items-center gap-2 border-t border-slate-100 bg-gradient-to-t from-white to-slate-50 px-4 py-3" data-ai-chat-form>
             <input type="text"
                 class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                placeholder="What would you like to know?"
+                placeholder="Ask me anything... (e.g., 'Show my budgets')"
                 autocomplete="off"
                 aria-label="Chat message input"
                 data-ai-chat-input />

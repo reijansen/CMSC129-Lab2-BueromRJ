@@ -173,23 +173,20 @@ DB_PASSWORD=<your-password>
 DB_SSLMODE=require
 ```
 
-**AI (Ollama):**
+**AI (Gemini API):**
 ```env
-AI_PROVIDER=ollama
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-OLLAMA_MODEL=qwen2.5:3b
-OLLAMA_ROUTER_MODEL=qwen2.5:3b
+AI_PROVIDER=gemini
+GEMINI_API_KEY=<your-gemini-api-key>
+GEMINI_MODEL=gemini-1.5-flash
+GEMINI_ROUTER_MODEL=gemini-1.5-flash
+GEMINI_FALLBACK_MODELS=gemini-3.1-flash-lite,gemini-2.5-flash-lite  # no brackets/spaces unless quoted
 AI_REQUEST_TIMEOUT_SECONDS=30
 ```
 
-### Step 3: Setup Ollama
+### Step 3: Setup Gemini API
 ```bash
-# Download Ollama from https://ollama.com
-# Start Ollama server
-ollama serve
-
-# In another terminal, pull the model
-ollama pull qwen2.5:3b
+# No local service needed.
+# Create an API key in Google AI Studio, then set GEMINI_API_KEY in your .env
 ```
 
 ### Step 4: Database & Assets
